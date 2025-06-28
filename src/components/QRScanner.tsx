@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { Upload, AlertTriangle, CheckCircle, ExternalLink, Eye, Shield, AlertCircle, Scan, FileImage } from 'lucide-react';
 import QrScanner from 'qr-scanner';
+import { checkUrlWithSafeBrowsing } from '/lib/safeBrowsing';
 
 interface ScanResult {
   data: string;
@@ -26,51 +27,8 @@ const QRScanner: React.FC = () => {
     }
   };
 
-  const checkUrlSafety = async (url: string): Promise<{ status: string; message: string }> => {
-    try {
-      const response = await fetch(`https://urlhaus-api.abuse.ch/v1/url/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: `url=${encodeURIComponent(url)}`,
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.query_status === 'ok') {
-          return {
-            status: 'malicious',
-            message: 'This URL has been flagged as malicious by URLhaus database'
-          };
-        } else {
-          return {
-            status: 'safe',
-            message: 'URL appears to be safe - not found in threat databases'
-          };
-        }
-      } else {
-        const suspiciousPatterns = [
-          /bit\.ly|tinyurl|t\.co|short\.link/i,
-          /[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/,
-          /[a-z0-9]{8,}\.tk|\.ml|\.ga|\.cf/i
-        ];
-
-        const isSuspicious = suspiciousPatterns.some(pattern => pattern.test(url));
-        
-        return {
-          status: isSuspicious ? 'suspicious' : 'safe',
-          message: isSuspicious 
-            ? 'URL contains patterns that might be suspicious (shortened URLs, unusual domains)' 
-            : 'URL structure appears normal'
-        };
-      }
-    } catch (error) {
-      return {
-        status: 'unknown',
-        message: 'Unable to verify URL safety - please exercise caution'
-      };
-    }
+  const checkUrlSafety = async (url: string) => {
+  return await checkUrlWithSafeBrowsing(url);
   };
 
   const handleFileUpload = useCallback(async (file: File) => {
