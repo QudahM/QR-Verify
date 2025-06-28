@@ -33,7 +33,7 @@
     --surface: 220 13% 9%;
     --surface-hover: 220 13% 12%;
     --glass-bg: 222 84% 4.9% / 0.8;
-    --glass-border: 217 32% 17% / 0.5;
+    --glass-border: 217 32% 17% / 0.8;
   }
   
   .light {
@@ -64,7 +64,7 @@
     --surface: 0 0% 100%;
     --surface-hover: 210 40% 98%;
     --glass-bg: 0 0% 100% / 0.8;
-    --glass-border: 214 32% 91% / 0.5;
+    --glass-border: 214 32% 91% / 0.8;
   }
   
   * {
