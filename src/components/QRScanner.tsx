@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { Upload, AlertTriangle, CheckCircle, ExternalLink, Eye, Shield, AlertCircle, Scan, FileImage } from 'lucide-react';
 import QrScanner from 'qr-scanner';
-import { checkUrlWithSafeBrowsing } from '/lib/safeBrowsing';
+import { checkUrlWithSafeBrowsing } from '../lib/safeBrowsing';
 
 interface ScanResult {
   data: string;
