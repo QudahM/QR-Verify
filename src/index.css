@@ -1,0 +1,333 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: #0a0f1a;
+    
+    /* Dark mode colors */
+    --foreground: 210 40% 98%;
+    --card: 222 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 84% 4.9%;
+    --secondary: 217 32% 17%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217 32% 17%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 217 32% 17%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217 32% 17%;
+    --input: 217 32% 17%;
+    --ring: 217 91% 60%;
+    --success: 142 76% 36%;
+    --warning: 38 92% 50%;
+    --info: 188 94% 42%;
+    --surface: 220 13% 9%;
+    --surface-hover: 220 13% 12%;
+    --glass-bg: 222 84% 4.9% / 0.8;
+    --glass-border: 217 32% 17% / 0.5;
+  }
+  
+  .light {
+    --background: #f8fafc;
+    
+    /* Light mode colors */
+    --foreground: 222 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 84% 4.9%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 84% 4.9%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222 84% 4.9%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 217 91% 60%;
+    --success: 142 76% 36%;
+    --warning: 38 92% 50%;
+    --info: 188 94% 42%;
+    --surface: 0 0% 100%;
+    --surface-hover: 210 40% 98%;
+    --glass-bg: 0 0% 100% / 0.8;
+    --glass-border: 214 32% 91% / 0.5;
+  }
+  
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply text-foreground;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: var(--background);
+    position: relative;
+    min-height: 100vh;
+  }
+  
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: -1;
+    background: var(--background);
+  }
+  
+  .dark body::before {
+    background-image: 
+      radial-gradient(circle at 20% 80%, rgba(42, 27, 61, 0.4) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, rgba(16, 22, 36, 0.4) 0%, transparent 50%),
+      radial-gradient(circle at 40% 40%, rgba(28, 28, 36, 0.3) 0%, transparent 50%),
+      linear-gradient(135deg, #0a0f1a 0%, #1c1c24 25%, #101624 50%, #2a1b3d 75%, #0a0f1a 100%);
+    background-size: 100% 100%, 100% 100%, 100% 100%, 400% 400%;
+    animation: gradientShift 12s ease-in-out infinite;
+  }
+  
+  .light body::before {
+    background-image: 
+      radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.02) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.02) 0%, transparent 50%),
+      radial-gradient(circle at 40% 40%, rgba(139, 92, 246, 0.02) 0%, transparent 50%),
+      linear-gradient(135deg, #f8fafc 0%, #f1f5f9 25%, #e2e8f0 50%, #cbd5e1 75%, #f8fafc 100%);
+    background-size: 100% 100%, 100% 100%, 100% 100%, 400% 400%;
+    animation: gradientShift 12s ease-in-out infinite;
+  }
+  
+  /* Subtle overlay for additional depth */
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: -1;
+    pointer-events: none;
+  }
+  
+  .dark body::after {
+    background: 
+      radial-gradient(circle at 50% 0%, rgba(59, 130, 246, 0.03) 0%, transparent 50%),
+      radial-gradient(circle at 0% 100%, rgba(16, 185, 129, 0.03) 0%, transparent 50%),
+      radial-gradient(circle at 100% 100%, rgba(139, 92, 246, 0.03) 0%, transparent 50%);
+  }
+  
+  .light body::after {
+    background: 
+      radial-gradient(circle at 50% 0%, rgba(59, 130, 246, 0.01) 0%, transparent 50%),
+      radial-gradient(circle at 0% 100%, rgba(16, 185, 129, 0.01) 0%, transparent 50%),
+      radial-gradient(circle at 100% 100%, rgba(139, 92, 246, 0.01) 0%, transparent 50%);
+  }
+}
+
+@layer utilities {
+  .animate-fadeIn {
+    animation: fadeIn 0.8s ease-out;
+  }
+  
+  .animate-slideUp {
+    animation: slideUp 0.6s ease-out;
+  }
+  
+  .animate-scaleIn {
+    animation: scaleIn 0.4s ease-out;
+  }
+  
+  .glass {
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+  }
+  
+  .glass-subtle {
+    backdrop-filter: blur(12px) saturate(120%);
+    -webkit-backdrop-filter: blur(12px) saturate(120%);
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  
+  @keyframes pulse-subtle {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.8;
+    }
+  }
+  
+  @keyframes gradientShift {
+    0%, 100% {
+      background-position: 0% 50%, 100% 50%, 50% 0%, 0% 50%;
+    }
+    25% {
+      background-position: 100% 50%, 0% 50%, 0% 100%, 25% 75%;
+    }
+    50% {
+      background-position: 50% 100%, 50% 0%, 100% 50%, 50% 100%;
+    }
+    75% {
+      background-position: 0% 50%, 100% 50%, 50% 0%, 75% 25%;
+    }
+  }
+  
+  .animate-pulse-subtle {
+    animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  .animate-gradient-shift {
+    animation: gradientShift 8s ease-in-out infinite;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-muted/20;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-muted-foreground/30;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-muted-foreground/50;
+}
+
+/* Focus styles */
+input:focus,
+textarea:focus,
+button:focus {
+  outline: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Typography improvements */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+}
+
+p {
+  line-height: 1.6;
+}
+
+/* Button transitions */
+button {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Selection styles */
+::selection {
+  @apply bg-primary/20 text-foreground;
+}
+
+/* Smooth transitions for theme changes */
+* {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+/* Enhanced glass effects for rich background */
+.glass-enhanced {
+  backdrop-filter: blur(24px) saturate(200%);
+  -webkit-backdrop-filter: blur(24px) saturate(200%);
+}
+
+.dark .glass-enhanced {
+  background: rgba(17, 17, 17, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 
+    0 8px 32px 0 rgba(0, 0, 0, 0.37),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.light .glass-enhanced {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 
+    0 8px 32px 0 rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+/* Subtle texture overlay */
+.texture-overlay {
+  position: relative;
+}
+
+.texture-overlay::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.dark .texture-overlay::before {
+  background-image: 
+    radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.02) 1px, transparent 0);
+  background-size: 20px 20px;
+}
+
+.light .texture-overlay::before {
+  background-image: 
+    radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.02) 1px, transparent 0);
+  background-size: 20px 20px;
+}
