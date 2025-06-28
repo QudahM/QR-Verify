@@ -25,7 +25,7 @@ const QRGenerator: React.FC = () => {
         margin: 2,
         color: {
           dark: '#021526',
-          light: '#F5F5F5',
+          light: '#FAF6E9',
         },
         errorCorrectionLevel: 'H',
       });
