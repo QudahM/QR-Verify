@@ -30,6 +30,38 @@ const Dashboard: React.FC = () => {
     if (user) {
       fetchQRCodes();
     }
+    // eslint-disable-next-line
+  }, [user]);
+
+  // Real-time subscription for qr_codes updates
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('qr_codes_updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'qr_codes',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          setQrCodes(prev =>
+            prev.map(qr =>
+              qr.id === payload.new.id
+                ? { ...qr, scan_count: payload.new.scan_count, last_scanned_at: payload.new.last_scanned_at }
+                : qr
+            )
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      channel.unsubscribe();
+    };
   }, [user]);
 
   const fetchQRCodes = async () => {
@@ -41,7 +73,7 @@ const Dashboard: React.FC = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      
+
       const qrCodesWithTracking = data?.map(qr => {
         // Generate tracking URL if it doesn't exist
         if (!qr.tracking_url && qr.type === 'url') {
@@ -70,7 +102,7 @@ const Dashboard: React.FC = () => {
 
       if (error) throw error;
       setQrCodes(qrCodes.filter(qr => qr.id !== id));
-      
+
       // Close analytics if the deleted QR was selected
       if (selectedQR?.id === id) {
         setSelectedQR(null);
@@ -212,7 +244,6 @@ const Dashboard: React.FC = () => {
               className="w-full pl-10 pr-4 py-3 bg-input border border-border rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary/50 text-foreground placeholder-muted-foreground transition-all duration-200"
             />
           </div>
-
           {/* Filter and View Controls */}
           <div className="flex items-center space-x-3">
             {/* Filter */}
@@ -310,7 +341,6 @@ const Dashboard: React.FC = () => {
                       />
                     </div>
                   </div>
-
                   {/* Content */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
@@ -326,7 +356,6 @@ const Dashboard: React.FC = () => {
                         )}
                         <span className="text-sm font-medium text-foreground capitalize">{qrCode.type}</span>
                       </div>
-                      
                       {/* Scan Count Badge */}
                       <div className="flex items-center space-x-1 px-2 py-1 bg-success/10 rounded-full border border-success/20">
                         <Eye className="w-3 h-3 text-success" strokeWidth={1.5} />
@@ -376,44 +405,37 @@ const Dashboard: React.FC = () => {
               ) : (
                 // List View
                 <div className="flex items-center space-x-6">
-                  {/* QR Code Thumbnail */}
-                  <div className="bg-white p-2 rounded-xl flex-shrink-0 shadow-glass-sm">
+                  <div className="bg-white p-4 rounded-xl shadow-glass-sm">
                     <img
                       src={qrCode.qr_data_url}
                       alt="QR Code"
                       className="w-16 h-16 object-contain rounded-lg"
                     />
                   </div>
-
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center space-x-2 mb-2">
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center space-x-2">
                       {qrCode.type === 'url' ? (
                         <Link className="w-4 h-4 text-info" strokeWidth={1.5} />
                       ) : (
                         <Type className="w-4 h-4 text-primary" strokeWidth={1.5} />
                       )}
                       <span className="text-sm font-medium text-foreground capitalize">{qrCode.type}</span>
-                      <div className="flex items-center space-x-1 px-2 py-1 bg-success/10 rounded-full border border-success/20">
-                        <Eye className="w-3 h-3 text-success" strokeWidth={1.5} />
-                        <span className="text-xs text-success font-medium">{qrCode.scan_count}</span>
-                      </div>
                     </div>
-                    <p className="text-muted-foreground text-sm truncate mb-1">{qrCode.content}</p>
-                    <div className="flex items-center space-x-4 text-xs text-muted-foreground">
-                      <div className="flex items-center space-x-1">
-                        <Calendar className="w-3 h-3" strokeWidth={1.5} />
-                        <span>{formatDate(qrCode.created_at)}</span>
-                      </div>
+                    <p className="text-foreground font-medium break-all">{qrCode.content}</p>
+                    <div className="flex items-center space-x-3 text-xs text-muted-foreground">
+                      <span>Created: {formatDate(qrCode.created_at)}</span>
+                      <span>•</span>
                       <span>Last scan: {formatLastScanned(qrCode.last_scanned_at)}</span>
                     </div>
                   </div>
-
-                  {/* Actions */}
-                  <div className="flex space-x-2 flex-shrink-0">
+                  <div className="text-center">
+                    <div className="text-xl font-semibold text-foreground">{qrCode.scan_count}</div>
+                    <div className="text-xs text-muted-foreground">Scans</div>
+                  </div>
+                  <div className="flex flex-col space-y-2">
                     <button
                       onClick={() => viewAnalytics(qrCode)}
-                      className="bg-info hover:bg-info/90 text-white py-2 px-4 rounded-xl font-medium hover:shadow-glow transition-all duration-200 flex items-center space-x-2"
+                      className="bg-info hover:bg-info/90 text-white py-2 px-4 rounded-xl font-medium hover:shadow-glow transition-all duration-200 flex items-center justify-center space-x-2"
                     >
                       <BarChart3 className="w-4 h-4" strokeWidth={1.5} />
                       <span>Analytics</span>
