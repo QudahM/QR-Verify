@@ -19,7 +19,7 @@ const Hero: React.FC = () => {
       icon: <Download className="w-6 h-6 text-info" strokeWidth={1.5} />,
       bg: "bg-info/10 group-hover:bg-info/20",
       title: "Export Ready",
-      text: "Download production-ready QR codes in multiple formats with perfect clarity and precision",
+      text: "Download production-ready QR codes in multiple designs and formats with perfect clarity",
     },
   ];
 
