@@ -7,6 +7,7 @@ import Navigation from './components/Navigation';
 import Hero from './components/Hero';
 import AuthModal from './components/auth/AuthModal';
 import Dashboard from './components/dashboard/Dashboard';
+import TrackingPage from './pages/TrackingPage';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 
@@ -131,15 +132,22 @@ function MainApp() {
   );
 }
 
+function AppContent() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/track/:qrCodeId" element={<TrackingPage />} />
+        <Route path="/*" element={<MainApp />} />
+      </Routes>
+    </Router>
+  );
+}
+
 function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <Router>
-          <Routes>
-            <Route path="/*" element={<MainApp />} />
-          </Routes>
-        </Router>
+        <AppContent />
       </AuthProvider>
     </ThemeProvider>
   );
