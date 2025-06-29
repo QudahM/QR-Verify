@@ -1,8 +1,9 @@
 import React, { useState, useCallback } from 'react';
-import { Download, Link, Type, Zap, Copy, Check, QrCode, Save } from 'lucide-react';
+import { Download, Link, Type, Zap, Copy, Check, QrCode, Save, Palette, Settings } from 'lucide-react';
 import QRCode from 'qrcode';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import QRCustomizer from './qr-customizer/QRCustomizer';
 
 const QRGenerator: React.FC = () => {
   const [input, setInput] = useState('');
@@ -12,6 +13,7 @@ const QRGenerator: React.FC = () => {
   const [inputType, setInputType] = useState<'text' | 'url'>('text');
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [showCustomizer, setShowCustomizer] = useState(false);
 
   const { user } = useAuth();
 
@@ -97,6 +99,11 @@ const QRGenerator: React.FC = () => {
     }
   };
 
+  const handleCustomQRGenerated = (dataUrl: string) => {
+    setQrDataUrl(dataUrl);
+    setSaved(false);
+  };
+
   return (
     <div className="space-y-12">
       {/* Header */}
@@ -166,23 +173,35 @@ const QRGenerator: React.FC = () => {
               </div>
             </div>
 
-            <button
-              onClick={generateQR}
-              disabled={!input.trim() || isGenerating}
-              className="group w-full bg-primary hover:bg-primary/90 disabled:bg-primary/50 text-white py-4 px-8 rounded-xl font-medium hover:shadow-glow disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-[1.02] disabled:hover:scale-100 flex items-center justify-center space-x-3"
-            >
-              {isGenerating ? (
-                <>
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Generating...</span>
-                </>
-              ) : (
-                <>
-                  <Zap className="w-5 h-5" strokeWidth={1.5} />
-                  <span>Generate QR Code</span>
-                </>
+            <div className="space-y-3">
+              <button
+                onClick={generateQR}
+                disabled={!input.trim() || isGenerating}
+                className="group w-full bg-primary hover:bg-primary/90 disabled:bg-primary/50 text-white py-4 px-8 rounded-xl font-medium hover:shadow-glow disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-[1.02] disabled:hover:scale-100 flex items-center justify-center space-x-3"
+              >
+                {isGenerating ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Generating...</span>
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-5 h-5" strokeWidth={1.5} />
+                    <span>Generate QR Code</span>
+                  </>
+                )}
+              </button>
+
+              {input.trim() && (
+                <button
+                  onClick={() => setShowCustomizer(true)}
+                  className="group w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white py-4 px-8 rounded-xl font-medium hover:shadow-glow transition-all duration-200 transform hover:scale-[1.02] flex items-center justify-center space-x-3"
+                >
+                  <Palette className="w-5 h-5" strokeWidth={1.5} />
+                  <span>Customize Design</span>
+                </button>
               )}
-            </button>
+            </div>
           </div>
         </div>
 
@@ -255,6 +274,17 @@ const QRGenerator: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* QR Customizer Modal */}
+      {showCustomizer && (
+        <QRCustomizer
+          content={input}
+          isOpen={showCustomizer}
+          onClose={() => setShowCustomizer(false)}
+          onQRGenerated={handleCustomQRGenerated}
+          onSave={user ? saveQRCode : undefined}
+        />
+      )}
     </div>
   );
 };
