@@ -40,7 +40,9 @@ export const generateTrackingUrl = (qrCodeId: string, originalUrl: string): stri
 // Log a scan event
 export const logScanEvent = async (scanEvent: ScanEvent): Promise<void> => {
   try {
-    const { error } = await supabase
+    console.log('Attempting to log scan event:', scanEvent);
+    
+    const { data, error } = await supabase
       .from('qr_scans')
       .insert({
         qr_code_id: scanEvent.qr_code_id,
@@ -50,19 +52,26 @@ export const logScanEvent = async (scanEvent: ScanEvent): Promise<void> => {
         referrer: scanEvent.referrer,
         session_id: scanEvent.session_id,
         scanned_at: new Date().toISOString(),
-      });
+      })
+      .select();
 
     if (error) {
-      console.error('Error logging scan event:', error);
+      console.error('Supabase error logging scan event:', error);
+      throw error;
     }
+
+    console.log('Scan event logged successfully:', data);
   } catch (error) {
     console.error('Failed to log scan event:', error);
+    throw error;
   }
 };
 
 // Get scan analytics for a QR code
 export const getScanAnalytics = async (qrCodeId: string): Promise<ScanAnalytics | null> => {
   try {
+    console.log('Fetching scan analytics for QR code:', qrCodeId);
+    
     const { data, error } = await supabase
       .rpc('get_scan_summary', { qr_code_uuid: qrCodeId });
 
@@ -71,7 +80,14 @@ export const getScanAnalytics = async (qrCodeId: string): Promise<ScanAnalytics 
       return null;
     }
 
-    return data?.[0] || null;
+    console.log('Scan analytics data:', data);
+    return data?.[0] || {
+      total_scans: 0,
+      today_scans: 0,
+      week_scans: 0,
+      month_scans: 0,
+      unique_sessions: 0,
+    };
   } catch (error) {
     console.error('Failed to fetch scan analytics:', error);
     return null;
@@ -81,6 +97,8 @@ export const getScanAnalytics = async (qrCodeId: string): Promise<ScanAnalytics 
 // Get daily scan data for charts
 export const getDailyScanData = async (qrCodeId: string, daysBack: number = 30): Promise<DailyScanData[]> => {
   try {
+    console.log('Fetching daily scan data for QR code:', qrCodeId, 'days back:', daysBack);
+    
     const { data, error } = await supabase
       .rpc('get_daily_scan_analytics', { 
         qr_code_uuid: qrCodeId, 
@@ -92,6 +110,7 @@ export const getDailyScanData = async (qrCodeId: string, daysBack: number = 30):
       return [];
     }
 
+    console.log('Daily scan data:', data);
     return data || [];
   } catch (error) {
     console.error('Failed to fetch daily scan data:', error);
@@ -150,6 +169,8 @@ export const getUserLocation = async (): Promise<{ city?: string; country?: stri
 // Update QR code with tracking URL
 export const updateQRCodeWithTracking = async (qrCodeId: string, trackingUrl: string): Promise<void> => {
   try {
+    console.log('Updating QR code with tracking URL:', qrCodeId, trackingUrl);
+    
     const { error } = await supabase
       .from('qr_codes')
       .update({ tracking_url: trackingUrl })
@@ -157,14 +178,20 @@ export const updateQRCodeWithTracking = async (qrCodeId: string, trackingUrl: st
 
     if (error) {
       console.error('Error updating QR code with tracking URL:', error);
+      throw error;
     }
+
+    console.log('QR code updated with tracking URL successfully');
   } catch (error) {
     console.error('Failed to update QR code with tracking URL:', error);
+    throw error;
   }
 };
 
 // Real-time subscription to scan events
 export const subscribeToScanEvents = (qrCodeId: string, callback: (payload: any) => void) => {
+  console.log('Setting up real-time subscription for QR code:', qrCodeId);
+  
   return supabase
     .channel(`qr_scans:${qrCodeId}`)
     .on(
@@ -175,7 +202,12 @@ export const subscribeToScanEvents = (qrCodeId: string, callback: (payload: any)
         table: 'qr_scans',
         filter: `qr_code_id=eq.${qrCodeId}`,
       },
-      callback
+      (payload) => {
+        console.log('Real-time scan event received:', payload);
+        callback(payload);
+      }
     )
-    .subscribe();
+    .subscribe((status) => {
+      console.log('Subscription status:', status);
+    });
 };
