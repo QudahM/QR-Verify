@@ -23,14 +23,7 @@ const QRGenerator: React.FC = () => {
 
     setIsGenerating(true);
     try {
-      // For URLs, we'll generate QR with tracking URL if user is logged in
-      let qrContent = input;
-      if (inputType === 'url' && user) {
-        // We'll update this with the actual tracking URL after saving
-        qrContent = input; // For now, use original URL
-      }
-
-      const dataUrl = await QRCode.toDataURL(qrContent, {
+      const dataUrl = await QRCode.toDataURL(input, {
         width: 512,
         margin: 2,
         color: {
@@ -46,14 +39,19 @@ const QRGenerator: React.FC = () => {
     } finally {
       setIsGenerating(false);
     }
-  }, [input, inputType, user]);
+  }, [input]);
 
   const saveQRCode = async () => {
     if (!user || !qrDataUrl || !input.trim()) return;
 
     setIsSaving(true);
     try {
-      // First, save the QR code to get an ID
+      // Generate tracking URL for URLs
+      let trackingUrl = undefined;
+      if (inputType === 'url') {
+        trackingUrl = generateTrackingUrl('temp-id', input);
+      }
+
       const { data, error } = await supabase
         .from('qr_codes')
         .insert({
@@ -61,37 +59,17 @@ const QRGenerator: React.FC = () => {
           content: input,
           type: inputType,
           qr_data_url: qrDataUrl,
-          tracking_url: null, // Will be updated below for URLs
+          tracking_url: trackingUrl,
         })
         .select()
         .single();
 
       if (error) throw error;
       
-      // For URLs, generate tracking URL and update the QR code
-      if (inputType === 'url' && data) {
-        const trackingUrl = generateTrackingUrl(data.id, input);
-        await updateQRCodeWithTracking(data.id, trackingUrl);
-        
-        // Regenerate QR code with tracking URL
-        const trackingQRDataUrl = await QRCode.toDataURL(trackingUrl, {
-          width: 512,
-          margin: 2,
-          color: {
-            dark: '#021526',
-            light: '#E2DAD6',
-          },
-          errorCorrectionLevel: 'H',
-        });
-        
-        // Update the QR code with the new tracking QR
-        await supabase
-          .from('qr_codes')
-          .update({ qr_data_url: trackingQRDataUrl })
-          .eq('id', data.id);
-        
-        // Update the displayed QR code
-        setQrDataUrl(trackingQRDataUrl);
+      // Update tracking URL with actual QR code ID
+      if (trackingUrl && data) {
+        const actualTrackingUrl = generateTrackingUrl(data.id, input);
+        await updateQRCodeWithTracking(data.id, actualTrackingUrl);
       }
       
       setSaved(true);
@@ -179,9 +157,7 @@ const QRGenerator: React.FC = () => {
                       {inputType === 'url' ? 'URL Detected' : 'Text Content'}
                     </label>
                     <p className="text-sm text-muted-foreground">
-                      {inputType === 'url' && user ? 'Link will be tracked with analytics' : 
-                       inputType === 'url' ? 'Sign in to enable tracking' : 
-                       'Plain text will be encoded'}
+                      {inputType === 'url' ? 'Link will be tracked with analytics' : 'Plain text will be encoded'}
                     </p>
                   </div>
                 </div>
@@ -244,17 +220,13 @@ const QRGenerator: React.FC = () => {
             </div>
 
             {/* Analytics Info */}
-            {inputType === 'url' && (
-              <div className={`${user ? 'bg-info/10 border-info/20' : 'bg-warning/10 border-warning/20'} rounded-xl p-4 border`}>
+            {inputType === 'url' && user && (
+              <div className="bg-info/10 rounded-xl p-4 border border-info/20">
                 <div className="flex items-center space-x-3">
-                  <BarChart3 className={`w-5 h-5 ${user ? 'text-info' : 'text-warning'}`} strokeWidth={1.5} />
+                  <BarChart3 className="w-5 h-5 text-info" strokeWidth={1.5} />
                   <div>
-                    <h4 className={`text-sm font-medium ${user ? 'text-info' : 'text-warning'}`}>
-                      {user ? 'Analytics Enabled' : 'Analytics Available'}
-                    </h4>
-                    <p className={`text-xs ${user ? 'text-info/80' : 'text-warning/80'}`}>
-                      {user ? 'This URL will be tracked with real-time scan analytics' : 'Sign in to enable URL tracking and analytics'}
-                    </p>
+                    <h4 className="text-sm font-medium text-info">Analytics Enabled</h4>
+                    <p className="text-xs text-info/80">This URL will be tracked with real-time scan analytics</p>
                   </div>
                 </div>
               </div>
