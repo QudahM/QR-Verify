@@ -18,7 +18,8 @@
     "react-dom": "^18.3.1",
     "qrcode-generator": "^1.4.4",
     "html2canvas": "^1.4.1",
-    "jspdf": "^2.5.1"
+    "jspdf": "^2.5.1",
+    "react-router-dom": "^6.8.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.1",

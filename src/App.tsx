@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QrCode, User, LogOut, LayoutDashboard, Moon, Sun } from 'lucide-react';
 import QRGenerator from './components/QRGenerator';
 import QRScanner from './components/QRScanner';
@@ -6,12 +7,13 @@ import Navigation from './components/Navigation';
 import Hero from './components/Hero';
 import AuthModal from './components/auth/AuthModal';
 import Dashboard from './components/dashboard/Dashboard';
+import TrackingPage from './pages/TrackingPage';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 
 type ActiveTab = 'generator' | 'scanner' | 'dashboard';
 
-function AppContent() {
+function MainApp() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('generator');
   const [showAuthModal, setShowAuthModal] = useState(false);
   const { user, signOut, loading } = useAuth();
@@ -127,6 +129,17 @@ function AppContent() {
       {/* Auth Modal */}
       <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </div>
+  );
+}
+
+function AppContent() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/track/:qrCodeId" element={<TrackingPage />} />
+        <Route path="/*" element={<MainApp />} />
+      </Routes>
+    </Router>
   );
 }
 

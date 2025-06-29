@@ -1,8 +1,9 @@
 import React, { useState, useCallback } from 'react';
-import { Download, Link, Type, Zap, Copy, Check, QrCode, Save, Palette, Settings } from 'lucide-react';
+import { Download, Link, Type, Zap, Copy, Check, QrCode, Save, Palette, BarChart3 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { generateTrackingUrl, updateQRCodeWithTracking } from '../lib/qrTracker';
 import QRCustomizer from './qr-customizer/QRCustomizer';
 
 const QRGenerator: React.FC = () => {
@@ -45,16 +46,31 @@ const QRGenerator: React.FC = () => {
 
     setIsSaving(true);
     try {
-      const { error } = await supabase
+      // Generate tracking URL for URLs
+      let trackingUrl = undefined;
+      if (inputType === 'url') {
+        trackingUrl = generateTrackingUrl('temp-id', input);
+      }
+
+      const { data, error } = await supabase
         .from('qr_codes')
         .insert({
           user_id: user.id,
           content: input,
           type: inputType,
           qr_data_url: qrDataUrl,
-        });
+          tracking_url: trackingUrl,
+        })
+        .select()
+        .single();
 
       if (error) throw error;
+      
+      // Update tracking URL with actual QR code ID
+      if (trackingUrl && data) {
+        const actualTrackingUrl = generateTrackingUrl(data.id, input);
+        await updateQRCodeWithTracking(data.id, actualTrackingUrl);
+      }
       
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
@@ -116,7 +132,7 @@ const QRGenerator: React.FC = () => {
           Create Your QR Code
         </h2>
         <p className="text-xl text-muted-foreground max-w-2xl mx-auto font-light">
-          Transform any text or URL into a beautiful, high-resolution QR code ready for professional use
+          Transform any text or URL into a beautiful, trackable QR code with real-time analytics
         </p>
       </div>
 
@@ -141,7 +157,7 @@ const QRGenerator: React.FC = () => {
                       {inputType === 'url' ? 'URL Detected' : 'Text Content'}
                     </label>
                     <p className="text-sm text-muted-foreground">
-                      {inputType === 'url' ? 'Link will be encoded' : 'Plain text will be encoded'}
+                      {inputType === 'url' ? 'Link will be tracked with analytics' : 'Plain text will be encoded'}
                     </p>
                   </div>
                 </div>
@@ -202,6 +218,19 @@ const QRGenerator: React.FC = () => {
                 </button>
               )}
             </div>
+
+            {/* Analytics Info */}
+            {inputType === 'url' && user && (
+              <div className="bg-info/10 rounded-xl p-4 border border-info/20">
+                <div className="flex items-center space-x-3">
+                  <BarChart3 className="w-5 h-5 text-info" strokeWidth={1.5} />
+                  <div>
+                    <h4 className="text-sm font-medium text-info">Analytics Enabled</h4>
+                    <p className="text-xs text-info/80">This URL will be tracked with real-time scan analytics</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -249,7 +278,7 @@ const QRGenerator: React.FC = () => {
                     ) : saved ? (
                       <>
                         <Check className="w-5 h-5" strokeWidth={1.5} />
-                        <span>Saved to Dashboard!</span>
+                        <span>Saved with Analytics!</span>
                       </>
                     ) : (
                       <>
@@ -269,7 +298,7 @@ const QRGenerator: React.FC = () => {
                 </div>
               </div>
               <h3 className="text-lg font-medium text-foreground mb-2">Ready to Generate</h3>
-              <p className="text-muted-foreground">Enter your content above and click generate to create your QR code</p>
+              <p className="text-muted-foreground">Enter your content above and click generate to create your trackable QR code</p>
             </div>
           )}
         </div>
