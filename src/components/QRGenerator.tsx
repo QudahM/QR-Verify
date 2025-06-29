@@ -3,7 +3,7 @@ import { Download, Link, Type, Zap, Copy, Check, QrCode, Save, Palette, BarChart
 import QRCode from 'qrcode';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { generateTrackingUrl, updateQRCodeWithTracking } from '../lib/qrTracker';
+import { generateEdgeTrackingUrl, updateQRCodeWithTracking } from '../lib/qrTracker';
 import QRCustomizer from './qr-customizer/QRCustomizer';
 
 const QRGenerator: React.FC = () => {
@@ -23,10 +23,8 @@ const QRGenerator: React.FC = () => {
 
     setIsGenerating(true);
     try {
-      const actualUrl = inputType === 'url'
-      ? generateTrackingUrl('temp-id', input) // or use proper ID if available
-      : input;
-      
+      // For URLs, we'll generate the QR code with the original URL first
+      // The tracking URL will be set when saving to database
       const dataUrl = await QRCode.toDataURL(input, {
         width: 512,
         margin: 2,
@@ -50,12 +48,7 @@ const QRGenerator: React.FC = () => {
 
     setIsSaving(true);
     try {
-      // Generate tracking URL for URLs
-      let trackingUrl = undefined;
-      if (inputType === 'url') {
-        trackingUrl = generateTrackingUrl('temp-id', input);
-      }
-
+      // First, insert the QR code to get the ID
       const { data, error } = await supabase
         .from('qr_codes')
         .insert({
@@ -63,17 +56,41 @@ const QRGenerator: React.FC = () => {
           content: input,
           type: inputType,
           qr_data_url: qrDataUrl,
-          tracking_url: trackingUrl,
         })
         .select()
         .single();
 
       if (error) throw error;
       
-      // Update tracking URL with actual QR code ID
-      if (trackingUrl && data) {
-        const actualTrackingUrl = generateTrackingUrl(data.id, input);
-        await updateQRCodeWithTracking(data.id, actualTrackingUrl);
+      // If it's a URL, generate the edge function tracking URL and update the record
+      if (inputType === 'url' && data) {
+        const trackingUrl = generateEdgeTrackingUrl(data.id, input);
+        await updateQRCodeWithTracking(data.id, trackingUrl);
+        
+        // Regenerate QR code with tracking URL for better analytics
+        try {
+          const trackingQRDataUrl = await QRCode.toDataURL(trackingUrl, {
+            width: 512,
+            margin: 2,
+            color: {
+              dark: '#021526',
+              light: '#E2DAD6',
+            },
+            errorCorrectionLevel: 'H',
+          });
+          
+          // Update the QR code data URL in the database
+          await supabase
+            .from('qr_codes')
+            .update({ qr_data_url: trackingQRDataUrl })
+            .eq('id', data.id);
+            
+          // Update the displayed QR code
+          setQrDataUrl(trackingQRDataUrl);
+        } catch (qrError) {
+          console.error('Error generating tracking QR code:', qrError);
+          // Continue with original QR code if tracking QR generation fails
+        }
       }
       
       setSaved(true);
@@ -229,8 +246,8 @@ const QRGenerator: React.FC = () => {
                 <div className="flex items-center space-x-3">
                   <BarChart3 className="w-5 h-5 text-info" strokeWidth={1.5} />
                   <div>
-                    <h4 className="text-sm font-medium text-info">Analytics Enabled</h4>
-                    <p className="text-xs text-info/80">This URL will be tracked with real-time scan analytics</p>
+                    <h4 className="text-sm font-medium text-info">Edge Function Analytics</h4>
+                    <p className="text-xs text-info/80">This URL will be tracked with instant redirects and real-time analytics</p>
                   </div>
                 </div>
               </div>

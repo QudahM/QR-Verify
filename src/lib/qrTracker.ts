@@ -27,17 +27,27 @@ export interface DailyScanData {
   scan_count: number;
 }
 
-// Generate a unique tracking URL for a QR code
-export const generateTrackingUrl = (qrCodeId: string, originalUrl: string): string => {
-  const baseUrl = window.location.origin;
-  const trackingUrl = `${baseUrl}/track/${qrCodeId}`;
+// Generate tracking URL using the edge function
+export const generateEdgeTrackingUrl = (qrCodeId: string, redirectUrl: string): string => {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  if (!supabaseUrl) {
+    console.error('VITE_SUPABASE_URL not found');
+    return redirectUrl; // Fallback to original URL
+  }
   
-  // Store the original URL in the tracking URL as a parameter
-  const encodedUrl = encodeURIComponent(originalUrl);
-  return `${trackingUrl}?redirect=${encodedUrl}`;
+  // Extract project reference from Supabase URL
+  const projectRef = supabaseUrl.replace('https://', '').replace('.supabase.co', '');
+  const encodedRedirect = encodeURIComponent(redirectUrl);
+  
+  return `https://${projectRef}.functions.supabase.co/track-scan/${qrCodeId}?redirect=${encodedRedirect}`;
 };
 
-// Log a scan event
+// Legacy function for backward compatibility
+export const generateTrackingUrl = (qrCodeId: string, originalUrl: string): string => {
+  return generateEdgeTrackingUrl(qrCodeId, originalUrl);
+};
+
+// Log a scan event (kept for backward compatibility, but edge function handles this now)
 export const logScanEvent = async (scanEvent: ScanEvent): Promise<void> => {
   try {
     const { error } = await supabase
