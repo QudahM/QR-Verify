@@ -23,6 +23,10 @@ const QRGenerator: React.FC = () => {
 
     setIsGenerating(true);
     try {
+      const actualUrl = inputType === 'url'
+      ? generateTrackingUrl('temp-id', input) // or use proper ID if available
+      : input;
+      
       const dataUrl = await QRCode.toDataURL(input, {
         width: 512,
         margin: 2,
