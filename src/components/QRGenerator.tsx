@@ -2,8 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { Download, Link, Type, Zap, Copy, Check, QrCode, Save, Palette, BarChart3, ExternalLink, Shield, Eye } from 'lucide-react';
 import QRCode from 'qrcode';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
-import { generateTrackingUrl } from '../lib/qrTracker';
+import { createTrackedQRCode, updateQRCodeImage, generateTrackingUrl } from '../lib/qrTracker';
 import QRCustomizer from './qr-customizer/QRCustomizer';
 
 const QRGenerator: React.FC = () => {
@@ -15,7 +14,11 @@ const QRGenerator: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
   const [showCustomizer, setShowCustomizer] = useState(false);
-  const [generatedQRId, setGeneratedQRId] = useState<string | null>(null);
+  const [trackedQRData, setTrackedQRData] = useState<{
+    trackedId: string;
+    originalId: string;
+    trackingUrl: string;
+  } | null>(null);
   const [isQRSavedToDashboard, setIsQRSavedToDashboard] = useState(false);
 
   const { user } = useAuth();
@@ -35,8 +38,7 @@ const QRGenerator: React.FC = () => {
   }, []);
 
   // Generate trackable QR code (for authenticated users saving to dashboard)
-  const generateTrackableQR = useCallback(async (qrCodeId: string, originalUrl: string) => {
-    const trackingUrl = generateTrackingUrl(qrCodeId, originalUrl);
+  const generateTrackableQR = useCallback(async (trackingUrl: string) => {
     const dataUrl = await QRCode.toDataURL(trackingUrl, {
       width: 512,
       margin: 2,
@@ -46,7 +48,7 @@ const QRGenerator: React.FC = () => {
       },
       errorCorrectionLevel: 'H',
     });
-    return { dataUrl, trackingUrl };
+    return dataUrl;
   }, []);
 
   const generateQR = useCallback(async () => {
@@ -58,7 +60,7 @@ const QRGenerator: React.FC = () => {
       const dataUrl = await generateSimpleQR(input);
       setQrDataUrl(dataUrl);
       setSaved(false);
-      setGeneratedQRId(null);
+      setTrackedQRData(null);
       setIsQRSavedToDashboard(false);
     } catch (error) {
       console.error('Error generating QR code:', error);
@@ -76,52 +78,40 @@ const QRGenerator: React.FC = () => {
       console.log('Input type:', inputType);
       console.log('Content:', input);
 
-      // Create QR code record in Supabase first
-      const { data: qrCodeData, error: insertError } = await supabase
-        .from('qr_codes')
-        .insert({
-          user_id: user.id,
-          content: input,
-          type: inputType,
-          qr_data_url: '', // Will be updated below
-          tracking_url: null, // Will be updated below for URLs
-        })
-        .select()
-        .single();
+      // Create tracked QR code record in Supabase
+      const result = await createTrackedQRCode(
+        user.id,
+        input,
+        inputType,
+        qrDataUrl // Original simple QR code image
+      );
 
-      if (insertError) throw insertError;
-      
-      console.log('QR code record created:', qrCodeData);
-      setGeneratedQRId(qrCodeData.id);
+      if (!result) {
+        throw new Error('Failed to create tracked QR code');
+      }
+
+      console.log('Tracked QR code created:', result);
+      setTrackedQRData(result);
       setIsQRSavedToDashboard(true);
 
       let finalQRDataUrl: string;
-      let trackingUrl: string | null = null;
 
       if (inputType === 'url') {
-        // Generate trackable QR code for URLs
-        const trackableResult = await generateTrackableQR(qrCodeData.id, input);
-        finalQRDataUrl = trackableResult.dataUrl;
-        trackingUrl = trackableResult.trackingUrl;
-        
-        console.log('Generated tracking URL:', trackingUrl);
+        // Generate trackable QR code for URLs using the tracking URL
+        finalQRDataUrl = await generateTrackableQR(result.trackingUrl);
+        console.log('Generated trackable QR code for URL');
       } else {
-        // For text, use simple QR code pointing directly to content
-        finalQRDataUrl = await generateSimpleQR(input);
+        // For text, keep the simple QR code pointing directly to content
+        finalQRDataUrl = qrDataUrl;
+        console.log('Using simple QR code for text content');
       }
 
-      // Update the QR code record with final data
-      const { error: updateError } = await supabase
-        .from('qr_codes')
-        .update({ 
-          qr_data_url: finalQRDataUrl,
-          tracking_url: trackingUrl
-        })
-        .eq('id', qrCodeData.id);
-
-      if (updateError) {
-        console.error('Error updating QR code record:', updateError);
-        throw updateError;
+      // Update the QR code record with the final QR image
+      const updateSuccess = await updateQRCodeImage(result.trackedId, finalQRDataUrl);
+      
+      if (!updateSuccess) {
+        console.error('Failed to update QR code image');
+        throw new Error('Failed to update QR code image');
       }
 
       // Update the displayed QR code
@@ -130,16 +120,17 @@ const QRGenerator: React.FC = () => {
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
       
-      console.log('QR code saved successfully with tracking:', {
-        id: qrCodeData.id,
+      console.log('QR code saved successfully:', {
+        trackedId: result.trackedId,
+        originalId: result.originalId,
         type: inputType,
-        hasTracking: !!trackingUrl
+        hasTracking: inputType === 'url'
       });
       
     } catch (error) {
       console.error('Error saving QR code:', error);
       setIsQRSavedToDashboard(false);
-      setGeneratedQRId(null);
+      setTrackedQRData(null);
     } finally {
       setIsSaving(false);
     }
@@ -175,7 +166,7 @@ const QRGenerator: React.FC = () => {
     // Reset saved state when input changes
     if (value !== input) {
       setIsQRSavedToDashboard(false);
-      setGeneratedQRId(null);
+      setTrackedQRData(null);
     }
     
     // Auto-detect URL format
@@ -218,7 +209,7 @@ const QRGenerator: React.FC = () => {
       };
     }
     
-    if (isQRSavedToDashboard && generatedQRId) {
+    if (isQRSavedToDashboard && trackedQRData) {
       return { 
         status: 'active', 
         message: 'Tracking active - scans are being recorded',
@@ -339,7 +330,7 @@ const QRGenerator: React.FC = () => {
                         </p>
                         <div className="bg-info/5 rounded-lg p-3 border border-info/10">
                           <p className="text-xs font-mono text-info break-all">
-                            {getTrackingPreview()?.replace('preview-id', '{qr-id}')}
+                            {getTrackingPreview()?.replace('preview-id', '{tracked-id}')}
                           </p>
                         </div>
                         <div className="flex items-center space-x-2 mt-2">
@@ -558,19 +549,29 @@ const QRGenerator: React.FC = () => {
               </div>
 
               {/* Tracking Details */}
-              {isQRSavedToDashboard && generatedQRId && inputType === 'url' && (
+              {isQRSavedToDashboard && trackedQRData && inputType === 'url' && (
                 <div className="bg-success/10 rounded-xl p-4 border border-success/20">
                   <div className="text-center">
                     <h4 className="text-sm font-medium text-success mb-2">Tracking Active</h4>
                     <p className="text-xs text-success/80 mb-3">
                       Your QR code now redirects through our tracking system. All scans will be recorded in your dashboard.
                     </p>
-                    <div className="bg-success/5 rounded-lg p-3 border border-success/10">
+                    <div className="bg-success/5 rounded-lg p-3 border border-success/10 mb-3">
                       <p className="text-xs font-mono text-success break-all">
-                        {generateTrackingUrl(generatedQRId, input)}
+                        {trackedQRData.trackingUrl}
                       </p>
                     </div>
-                    <div className="flex items-center justify-center space-x-2 mt-2">
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div className="bg-success/5 rounded-lg p-2 border border-success/10">
+                        <span className="text-success/60 block">Tracked ID:</span>
+                        <span className="text-success font-mono">{trackedQRData.trackedId.slice(0, 8)}...</span>
+                      </div>
+                      <div className="bg-success/5 rounded-lg p-2 border border-success/10">
+                        <span className="text-success/60 block">Original ID:</span>
+                        <span className="text-success font-mono">{trackedQRData.originalId.slice(0, 8)}...</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-center space-x-2 mt-3">
                       <ExternalLink className="w-3 h-3 text-success/60" strokeWidth={1.5} />
                       <span className="text-xs text-success/60">Users will be redirected to: {input}</span>
                     </div>

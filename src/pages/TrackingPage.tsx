@@ -30,9 +30,9 @@ const TrackingPage: React.FC = () => {
       }
 
       try {
-        console.log('Processing QR code scan for ID:', qrCodeId);
+        console.log('Processing QR code scan for tracked ID:', qrCodeId);
 
-        // Step 1: Validate QR code exists
+        // Step 1: Validate QR code exists (this now works with both tracked and original IDs)
         const qrCodeData = await validateQRCode(qrCodeId);
         if (!qrCodeData) {
           setState({
@@ -44,7 +44,16 @@ const TrackingPage: React.FC = () => {
 
         console.log('QR code validated:', qrCodeData);
 
-        // Step 2: Get redirect URL
+        // Step 2: Only log scans for tracked QR codes (those with is_tracked = true)
+        if (!qrCodeData.is_tracked) {
+          setState({
+            status: 'error',
+            message: 'This QR code is not configured for tracking'
+          });
+          return;
+        }
+
+        // Step 3: Get redirect URL
         const redirectParam = searchParams.get('redirect');
         const targetUrl = redirectParam ? decodeURIComponent(redirectParam) : qrCodeData.content;
         
@@ -58,21 +67,23 @@ const TrackingPage: React.FC = () => {
 
         console.log('Target URL:', targetUrl);
 
-        // Step 3: Get scan metadata
+        // Step 4: Get scan metadata
         const metadata = await getScanMetadata();
         console.log('Scan metadata:', metadata);
 
-        // Step 4: Log scan event
+        // Step 5: Log scan event using the tracked QR code ID
         const scanLogged = await logScanEvent({
-          qr_code_id: qrCodeId,
+          qr_code_id: qrCodeData.id, // Use the tracked QR code ID for analytics
           ...metadata,
         });
 
         if (!scanLogged) {
           console.warn('Failed to log scan event, but continuing with redirect');
+        } else {
+          console.log('Scan event logged successfully for tracked QR code:', qrCodeData.id);
         }
 
-        // Step 5: Update state and start countdown
+        // Step 6: Update state and start countdown
         setState({
           status: 'success',
           message: 'Scan recorded successfully',
@@ -81,7 +92,7 @@ const TrackingPage: React.FC = () => {
           countdown: 3
         });
 
-        // Step 6: Start countdown and redirect
+        // Step 7: Start countdown and redirect
         let timeLeft = 3;
         const timer = setInterval(() => {
           timeLeft--;
@@ -233,6 +244,14 @@ const TrackingPage: React.FC = () => {
                   <span>{(state.qrCodeData.scan_count || 0) + 1}</span>
                 </div>
               </div>
+              {state.qrCodeData.is_tracked && (
+                <div className="mt-3 text-xs text-success">
+                  <div className="flex items-center justify-center space-x-1">
+                    <BarChart3 className="w-3 h-3" strokeWidth={1.5} />
+                    <span>Tracking ID: {state.qrCodeData.id.slice(0, 8)}...</span>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -246,6 +265,9 @@ const TrackingPage: React.FC = () => {
                     qrCodeId,
                     redirectParam: searchParams.get('redirect'),
                     status: state.status,
+                    isTracked: state.qrCodeData?.is_tracked,
+                    trackedId: state.qrCodeData?.id,
+                    originalId: state.qrCodeData?.original_qr_id,
                     userAgent: navigator.userAgent.substring(0, 50) + '...',
                     referrer: document.referrer || 'none',
                   }, null, 2)}

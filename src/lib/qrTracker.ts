@@ -27,11 +27,79 @@ export interface DailyScanData {
   scan_count: number;
 }
 
+export interface QRCodeCreationResult {
+  trackedId: string;
+  originalId: string;
+  trackingUrl: string;
+}
+
 // Generate a unique tracking URL for a QR code using custom subdomain
 export const generateTrackingUrl = (qrCodeId: string, originalUrl: string): string => {
   const trackingDomain = 'https://track.qrnexus.site';
   const encodedUrl = encodeURIComponent(originalUrl);
   return `${trackingDomain}/track/${qrCodeId}?redirect=${encodedUrl}`;
+};
+
+// Create a tracked QR code record in Supabase
+export const createTrackedQRCode = async (
+  userId: string,
+  content: string,
+  type: 'text' | 'url',
+  originalQRDataUrl: string
+): Promise<QRCodeCreationResult | null> => {
+  try {
+    console.log('Creating tracked QR code:', { userId, content, type });
+
+    const { data, error } = await supabase
+      .rpc('create_tracked_qr_code', {
+        p_user_id: userId,
+        p_content: content,
+        p_type: type,
+        p_original_qr_data_url: originalQRDataUrl
+      });
+
+    if (error) {
+      console.error('Error creating tracked QR code:', error);
+      return null;
+    }
+
+    if (!data || data.length === 0) {
+      console.error('No data returned from create_tracked_qr_code');
+      return null;
+    }
+
+    const result = data[0];
+    console.log('Tracked QR code created:', result);
+
+    return {
+      trackedId: result.tracked_id,
+      originalId: result.original_id,
+      trackingUrl: result.tracking_url
+    };
+  } catch (error) {
+    console.error('Failed to create tracked QR code:', error);
+    return null;
+  }
+};
+
+// Update QR code with the final trackable QR image
+export const updateQRCodeImage = async (qrCodeId: string, qrDataUrl: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('qr_codes')
+      .update({ qr_data_url: qrDataUrl })
+      .eq('id', qrCodeId);
+
+    if (error) {
+      console.error('Error updating QR code image:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Failed to update QR code image:', error);
+    return false;
+  }
 };
 
 // Log a scan event with comprehensive metadata
@@ -66,7 +134,7 @@ export const logScanEvent = async (scanEvent: ScanEvent): Promise<boolean> => {
   }
 };
 
-// Get scan analytics for a QR code
+// Get scan analytics for a QR code (only works for tracked QR codes)
 export const getScanAnalytics = async (qrCodeId: string): Promise<ScanAnalytics | null> => {
   try {
     const { data, error } = await supabase
@@ -90,7 +158,7 @@ export const getScanAnalytics = async (qrCodeId: string): Promise<ScanAnalytics 
   }
 };
 
-// Get daily scan data for charts
+// Get daily scan data for charts (only works for tracked QR codes)
 export const getDailyScanData = async (qrCodeId: string, daysBack: number = 30): Promise<DailyScanData[]> => {
   try {
     const { data, error } = await supabase
@@ -171,22 +239,6 @@ export const getUserLocation = async (): Promise<{ city?: string; country?: stri
   }
 };
 
-// Update QR code with tracking URL
-export const updateQRCodeWithTracking = async (qrCodeId: string, trackingUrl: string): Promise<void> => {
-  try {
-    const { error } = await supabase
-      .from('qr_codes')
-      .update({ tracking_url: trackingUrl })
-      .eq('id', qrCodeId);
-
-    if (error) {
-      console.error('Error updating QR code with tracking URL:', error);
-    }
-  } catch (error) {
-    console.error('Failed to update QR code with tracking URL:', error);
-  }
-};
-
 // Real-time subscription to scan events for a specific QR code
 export const subscribeToScanEvents = (qrCodeId: string, callback: (payload: any) => void) => {
   console.log('Setting up real-time subscription for QR code:', qrCodeId);
@@ -235,21 +287,18 @@ export const subscribeToQRCodeUpdates = (userId: string, callback: (payload: any
     });
 };
 
-// Validate QR code exists and get its data
+// Validate QR code exists and get its data (works for both tracked and original IDs)
 export const validateQRCode = async (qrCodeId: string): Promise<any | null> => {
   try {
     const { data, error } = await supabase
-      .from('qr_codes')
-      .select('*')
-      .eq('id', qrCodeId)
-      .single();
+      .rpc('get_qr_code_by_any_id', { p_qr_id: qrCodeId });
 
     if (error) {
       console.error('Error validating QR code:', error);
       return null;
     }
 
-    return data;
+    return data?.[0] || null;
   } catch (error) {
     console.error('Failed to validate QR code:', error);
     return null;
