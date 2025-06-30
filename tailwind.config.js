@@ -66,6 +66,8 @@ export default {
         'scale-in': 'scaleIn 0.4s ease-out',
         'pulse-subtle': 'pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'gradient-shift': 'gradientShift 8s ease-in-out infinite',
+        'gentle-float': 'gentleFloat 6s ease-in-out infinite',
+        'mesh-float': 'meshFloat 8s ease-in-out infinite',
       },
       keyframes: {
         gradientShift: {
@@ -74,6 +76,38 @@ export default {
           },
           '50%': {
             'background-position': '100% 50%'
+          }
+        },
+        gentleFloat: {
+          '0%, 100%': {
+            transform: 'translate(0, 0) rotate(0deg)',
+            opacity: '0.7'
+          },
+          '33%': {
+            transform: 'translate(10px, -10px) rotate(2deg)',
+            opacity: '0.9'
+          },
+          '66%': {
+            transform: 'translate(-5px, 5px) rotate(-1deg)',
+            opacity: '0.8'
+          }
+        },
+        meshFloat: {
+          '0%, 100%': {
+            transform: 'translate(0, 0) rotate(0deg) scale(1)',
+            opacity: '0.6'
+          },
+          '25%': {
+            transform: 'translate(8px, -12px) rotate(1deg) scale(1.05)',
+            opacity: '0.8'
+          },
+          '50%': {
+            transform: 'translate(-6px, -8px) rotate(-0.5deg) scale(0.95)',
+            opacity: '0.9'
+          },
+          '75%': {
+            transform: 'translate(-10px, 6px) rotate(0.5deg) scale(1.02)',
+            opacity: '0.7'
           }
         }
       },
@@ -85,6 +119,9 @@ export default {
         'glow': '0 0 20px rgba(59, 130, 246, 0.3)',
         'glow-sm': '0 0 10px rgba(59, 130, 246, 0.2)',
         'rich-glow': '0 0 30px rgba(42, 27, 61, 0.4), 0 0 60px rgba(16, 22, 36, 0.2)',
+      },
+      blur: {
+        '3xl': '64px',
       },
     },
   },
