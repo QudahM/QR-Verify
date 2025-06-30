@@ -185,13 +185,6 @@ const QRGenerator: React.FC = () => {
     setIsQRSavedToDashboard(false);
   };
 
-  const getTrackingPreview = () => {
-    if (inputType === 'url' && input.trim()) {
-      return generateTrackingUrl('preview-id', input);
-    }
-    return null;
-  };
-
   const getTrackingStatus = () => {
     if (!user) {
       return { 
@@ -304,56 +297,35 @@ const QRGenerator: React.FC = () => {
               </div>
             </div>
 
-            {/* Tracking Info */}
-            {inputType === 'url' && input.trim() && (
-              <div className={`rounded-xl p-4 border ${
-                user 
-                  ? 'bg-info/10 border-info/20' 
-                  : 'bg-warning/10 border-warning/20'
-              }`}>
-                <div className="flex items-start space-x-3">
-                  {user ? (
-                    <BarChart3 className="w-5 h-5 text-info mt-0.5" strokeWidth={1.5} />
-                  ) : (
-                    <Shield className="w-5 h-5 text-warning mt-0.5" strokeWidth={1.5} />
-                  )}
+            {/* Simplified Tracking Info */}
+            {inputType === 'url' && input.trim() && user && (
+              <div className="bg-info/10 rounded-xl p-4 border border-info/20">
+                <div className="flex items-center space-x-3">
+                  <div className="text-2xl">📊</div>
                   <div className="flex-1">
-                    <h4 className={`text-sm font-medium mb-2 ${
-                      user ? 'text-info' : 'text-warning'
-                    }`}>
-                      {user ? 'Tracking Available' : 'No Tracking (Not Signed In)'}
+                    <h4 className="text-sm font-medium text-info mb-1">
+                      Tracking Available
                     </h4>
-                    {user ? (
-                      <>
-                        <p className="text-xs text-info/80 mb-3">
-                          Save to dashboard to enable tracking through our analytics system:
-                        </p>
-                        <div className="bg-info/5 rounded-lg p-3 border border-info/10">
-                          <p className="text-xs font-mono text-info break-all">
-                            {getTrackingPreview()?.replace('preview-id', '{tracked-id}')}
-                          </p>
-                        </div>
-                        <div className="flex items-center space-x-2 mt-2">
-                          <ExternalLink className="w-3 h-3 text-info/60" strokeWidth={1.5} />
-                          <span className="text-xs text-info/60">Users will be seamlessly redirected to your original URL</span>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <p className="text-xs text-warning/80 mb-3">
-                          QR code will point directly to your URL without tracking:
-                        </p>
-                        <div className="bg-warning/5 rounded-lg p-3 border border-warning/10">
-                          <p className="text-xs font-mono text-warning break-all">
-                            {input}
-                          </p>
-                        </div>
-                        <div className="flex items-center space-x-2 mt-2">
-                          <ExternalLink className="w-3 h-3 text-warning/60" strokeWidth={1.5} />
-                          <span className="text-xs text-warning/60">Sign in to enable tracking and analytics</span>
-                        </div>
-                      </>
-                    )}
+                    <p className="text-xs text-info/80">
+                      Save to dashboard to enable analytics and scan tracking
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* No Tracking Info for non-signed in users */}
+            {inputType === 'url' && input.trim() && !user && (
+              <div className="bg-warning/10 rounded-xl p-4 border border-warning/20">
+                <div className="flex items-center space-x-3">
+                  <Shield className="w-5 h-5 text-warning" strokeWidth={1.5} />
+                  <div className="flex-1">
+                    <h4 className="text-sm font-medium text-warning mb-1">
+                      No Tracking (Not Signed In)
+                    </h4>
+                    <p className="text-xs text-warning/80">
+                      QR code will point directly to your URL without tracking
+                    </p>
                   </div>
                 </div>
               </div>
@@ -548,33 +520,17 @@ const QRGenerator: React.FC = () => {
                 )}
               </div>
 
-              {/* Tracking Details */}
+              {/* Simplified Tracking Confirmation */}
               {isQRSavedToDashboard && trackedQRData && inputType === 'url' && (
                 <div className="bg-success/10 rounded-xl p-4 border border-success/20">
                   <div className="text-center">
-                    <h4 className="text-sm font-medium text-success mb-2">Tracking Active</h4>
-                    <p className="text-xs text-success/80 mb-3">
-                      Your QR code now redirects through our tracking system. All scans will be recorded in your dashboard.
+                    <div className="flex items-center justify-center space-x-2 mb-2">
+                      <div className="text-xl">📊</div>
+                      <h4 className="text-sm font-medium text-success">Tracking Active</h4>
+                    </div>
+                    <p className="text-xs text-success/80">
+                      Your QR code is now being tracked. View analytics in your dashboard.
                     </p>
-                    <div className="bg-success/5 rounded-lg p-3 border border-success/10 mb-3">
-                      <p className="text-xs font-mono text-success break-all">
-                        {trackedQRData.trackingUrl}
-                      </p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3 text-xs">
-                      <div className="bg-success/5 rounded-lg p-2 border border-success/10">
-                        <span className="text-success/60 block">Tracked ID:</span>
-                        <span className="text-success font-mono">{trackedQRData.trackedId.slice(0, 8)}...</span>
-                      </div>
-                      <div className="bg-success/5 rounded-lg p-2 border border-success/10">
-                        <span className="text-success/60 block">Original ID:</span>
-                        <span className="text-success font-mono">{trackedQRData.originalId.slice(0, 8)}...</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-center space-x-2 mt-3">
-                      <ExternalLink className="w-3 h-3 text-success/60" strokeWidth={1.5} />
-                      <span className="text-xs text-success/60">Users will be redirected to: {input}</span>
-                    </div>
                   </div>
                 </div>
               )}
