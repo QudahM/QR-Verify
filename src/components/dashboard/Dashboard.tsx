@@ -14,6 +14,8 @@ interface QRCodeRecord {
   tracking_url?: string;
   scan_count: number;
   last_scanned_at?: string;
+  is_tracked?: boolean;
+  original_qr_id?: string;
 }
 
 const Dashboard: React.FC = () => {
@@ -236,8 +238,12 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Analytics */}
-        <QRAnalytics qrCodeId={selectedQR.id} qrCodeContent={selectedQR.content} />
+        {/* Analytics with detailed tracking information */}
+        <QRAnalytics 
+          qrCodeId={selectedQR.id} 
+          qrCodeContent={selectedQR.content}
+          qrCodeData={selectedQR}
+        />
       </div>
     );
   }
@@ -376,7 +382,6 @@ const Dashboard: React.FC = () => {
                       />
                     </div>
                   </div>
-                  
                   {/* Content */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">

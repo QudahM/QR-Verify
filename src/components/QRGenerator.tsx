@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Download, Link, Type, Zap, Copy, Check, QrCode, Save, Palette, BarChart3, ExternalLink, Shield, Eye, Info, Clock, Users } from 'lucide-react';
+import { Download, Link, Type, Zap, Copy, Check, QrCode, Save, Palette, BarChart3, Shield } from 'lucide-react';
 import QRCode from 'qrcode';
 import { useAuth } from '../contexts/AuthContext';
 import { createTrackedQRCode, updateQRCodeImage, generateTrackingUrl } from '../lib/qrTracker';
@@ -156,17 +156,6 @@ const QRGenerator: React.FC = () => {
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
       console.error('Failed to copy:', error);
-    }
-  };
-
-  const copyTrackingUrl = async () => {
-    if (!trackedQRData?.trackingUrl) return;
-    
-    try {
-      await navigator.clipboard.writeText(trackedQRData.trackingUrl);
-      // Could add a toast notification here
-    } catch (error) {
-      console.error('Failed to copy tracking URL:', error);
     }
   };
 
@@ -395,160 +384,82 @@ const QRGenerator: React.FC = () => {
                 </div>
               </div>
 
-              {/* Enhanced Tracking Status with Detailed Information */}
-              <div className="bg-surface/50 rounded-xl p-6 border border-border">
-                <div className="space-y-4">
-                  {/* Status Header */}
-                  <div className="flex items-center space-x-3">
-                    {(() => {
-                      const trackingStatus = getTrackingStatus();
+              {/* Simple Tracking Status */}
+              <div className="bg-surface/50 rounded-xl p-4 border border-border">
+                <div className="flex items-center space-x-3">
+                  {(() => {
+                    const trackingStatus = getTrackingStatus();
+                    
+                    switch (trackingStatus.status) {
+                      case 'active':
+                        return (
+                          <>
+                            <div className="w-8 h-8 bg-success/10 rounded-lg flex items-center justify-center">
+                              <BarChart3 className="w-4 h-4 text-success" strokeWidth={1.5} />
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center space-x-2">
+                                <span className="text-sm font-medium text-success">Tracking Active</span>
+                                <div className="w-2 h-2 bg-success rounded-full animate-pulse"></div>
+                              </div>
+                              <p className="text-xs text-success/80">{trackingStatus.message}</p>
+                            </div>
+                          </>
+                        );
                       
-                      switch (trackingStatus.status) {
-                        case 'active':
-                          return (
-                            <>
-                              <div className="w-8 h-8 bg-success/10 rounded-lg flex items-center justify-center">
-                                <Eye className="w-4 h-4 text-success" strokeWidth={1.5} />
-                              </div>
-                              <div className="flex-1">
-                                <div className="flex items-center space-x-2">
-                                  <span className="text-sm font-medium text-success">Tracking: ACTIVE</span>
-                                  <div className="w-2 h-2 bg-success rounded-full animate-pulse"></div>
-                                </div>
-                                <p className="text-xs text-success/80">{trackingStatus.message}</p>
-                              </div>
-                            </>
-                          );
-                        
-                        case 'inactive':
-                          return (
-                            <>
-                              <div className="w-8 h-8 bg-warning/10 rounded-lg flex items-center justify-center">
-                                <Shield className="w-4 h-4 text-warning" strokeWidth={1.5} />
-                              </div>
-                              <div className="flex-1">
-                                <div className="flex items-center space-x-2">
-                                  <span className="text-sm font-medium text-warning">Tracking: INACTIVE</span>
-                                  <div className="w-2 h-2 bg-warning rounded-full"></div>
-                                </div>
-                                <p className="text-xs text-warning/80">{trackingStatus.message}</p>
-                              </div>
-                            </>
-                          );
-                        
-                        case 'unavailable':
-                          return (
-                            <>
-                              <div className="w-8 h-8 bg-muted/10 rounded-lg flex items-center justify-center">
-                                <Shield className="w-4 h-4 text-muted-foreground" strokeWidth={1.5} />
-                              </div>
-                              <div className="flex-1">
-                                <div className="flex items-center space-x-2">
-                                  <span className="text-sm font-medium text-muted-foreground">Tracking: UNAVAILABLE</span>
-                                  <div className="w-2 h-2 bg-muted-foreground rounded-full"></div>
-                                </div>
-                                <p className="text-xs text-muted-foreground/80">{trackingStatus.message}</p>
-                              </div>
-                            </>
-                          );
-                        
-                        case 'not-applicable':
-                          return (
-                            <>
-                              <div className="w-8 h-8 bg-info/10 rounded-lg flex items-center justify-center">
-                                <Type className="w-4 h-4 text-info" strokeWidth={1.5} />
-                              </div>
-                              <div className="flex-1">
-                                <div className="flex items-center space-x-2">
-                                  <span className="text-sm font-medium text-info">Tracking: N/A</span>
-                                  <div className="w-2 h-2 bg-info rounded-full"></div>
-                                </div>
-                                <p className="text-xs text-info/80">{trackingStatus.message}</p>
-                              </div>
-                            </>
-                          );
-                        
-                        default:
-                          return (
-                            <>
-                              <div className="w-8 h-8 bg-muted/10 rounded-lg flex items-center justify-center">
-                                <Shield className="w-4 h-4 text-muted-foreground" strokeWidth={1.5} />
-                              </div>
-                              <div className="flex-1">
-                                <div className="flex items-center space-x-2">
-                                  <span className="text-sm font-medium text-muted-foreground">Tracking: PENDING</span>
-                                  <div className="w-2 h-2 bg-muted-foreground rounded-full"></div>
-                                </div>
-                                <p className="text-xs text-muted-foreground/80">{trackingStatus.message}</p>
-                              </div>
-                            </>
-                          );
-                      }
-                    })()}
-                  </div>
-
-                  {/* Detailed Tracking Information */}
-                  {isQRSavedToDashboard && trackedQRData && inputType === 'url' && (
-                    <div className="space-y-4 pt-4 border-t border-border">
-                      {/* Analytics Features */}
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-primary/5 rounded-lg p-3 border border-primary/10">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <BarChart3 className="w-4 h-4 text-primary" strokeWidth={1.5} />
-                            <span className="text-xs font-medium text-primary">Real-time Analytics</span>
-                          </div>
-                          <p className="text-xs text-primary/70">Track scans, locations, and user behavior</p>
-                        </div>
-                        
-                        <div className="bg-success/5 rounded-lg p-3 border border-success/10">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <Users className="w-4 h-4 text-success" strokeWidth={1.5} />
-                            <span className="text-xs font-medium text-success">User Insights</span>
-                          </div>
-                          <p className="text-xs text-success/70">Device types, browsers, and referrers</p>
-                        </div>
-                      </div>
-
-                      {/* Tracking URL Information */}
-                      <div className="bg-info/5 rounded-lg p-4 border border-info/10">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center space-x-2">
-                            <ExternalLink className="w-4 h-4 text-info" strokeWidth={1.5} />
-                            <span className="text-sm font-medium text-info">Tracking URL</span>
-                          </div>
-                          <button
-                            onClick={copyTrackingUrl}
-                            className="flex items-center space-x-1 px-2 py-1 bg-info/10 hover:bg-info/20 rounded-lg transition-colors"
-                          >
-                            <Copy className="w-3 h-3 text-info" strokeWidth={1.5} />
-                            <span className="text-xs text-info">Copy</span>
-                          </button>
-                        </div>
-                        <div className="bg-background/50 rounded-lg p-3 border border-border">
-                          <p className="text-xs font-mono text-foreground break-all">
-                            {trackedQRData.trackingUrl}
-                          </p>
-                        </div>
-                        <div className="flex items-center space-x-2 mt-3">
-                          <Info className="w-3 h-3 text-info" strokeWidth={1.5} />
-                          <p className="text-xs text-info/70">
-                            Users will be seamlessly redirected to your original URL
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Privacy Notice */}
-                      <div className="bg-success/5 rounded-lg p-3 border border-success/10">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <Shield className="w-4 h-4 text-success" strokeWidth={1.5} />
-                          <span className="text-xs font-medium text-success">Privacy Protected</span>
-                        </div>
-                        <p className="text-xs text-success/70">
-                          We only track that a scan occurred. No location data or personal information is collected.
-                        </p>
-                      </div>
-                    </div>
-                  )}
+                      case 'inactive':
+                        return (
+                          <>
+                            <div className="w-8 h-8 bg-warning/10 rounded-lg flex items-center justify-center">
+                              <Shield className="w-4 h-4 text-warning" strokeWidth={1.5} />
+                            </div>
+                            <div className="flex-1">
+                              <span className="text-sm font-medium text-warning">Tracking Available</span>
+                              <p className="text-xs text-warning/80">{trackingStatus.message}</p>
+                            </div>
+                          </>
+                        );
+                      
+                      case 'unavailable':
+                        return (
+                          <>
+                            <div className="w-8 h-8 bg-muted/10 rounded-lg flex items-center justify-center">
+                              <Shield className="w-4 h-4 text-muted-foreground" strokeWidth={1.5} />
+                            </div>
+                            <div className="flex-1">
+                              <span className="text-sm font-medium text-muted-foreground">No Tracking</span>
+                              <p className="text-xs text-muted-foreground/80">{trackingStatus.message}</p>
+                            </div>
+                          </>
+                        );
+                      
+                      case 'not-applicable':
+                        return (
+                          <>
+                            <div className="w-8 h-8 bg-info/10 rounded-lg flex items-center justify-center">
+                              <Type className="w-4 h-4 text-info" strokeWidth={1.5} />
+                            </div>
+                            <div className="flex-1">
+                              <span className="text-sm font-medium text-info">Text Content</span>
+                              <p className="text-xs text-info/80">{trackingStatus.message}</p>
+                            </div>
+                          </>
+                        );
+                      
+                      default:
+                        return (
+                          <>
+                            <div className="w-8 h-8 bg-muted/10 rounded-lg flex items-center justify-center">
+                              <QrCode className="w-4 h-4 text-muted-foreground" strokeWidth={1.5} />
+                            </div>
+                            <div className="flex-1">
+                              <span className="text-sm font-medium text-muted-foreground">Ready to Generate</span>
+                              <p className="text-xs text-muted-foreground/80">Create your QR code above</p>
+                            </div>
+                          </>
+                        );
+                    }
+                  })()}
                 </div>
               </div>
               
