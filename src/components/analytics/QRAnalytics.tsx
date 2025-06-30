@@ -264,20 +264,6 @@ const QRAnalytics: React.FC<QRAnalyticsProps> = ({ qrCodeId, qrCodeContent, qrCo
         </div>
       )}
 
-      {/* Charts */}
-      <div className="grid lg:grid-cols-2 gap-6">
-        <ScanChart
-          data={weeklyData}
-          title="Last 7 Days"
-          height={200}
-        />
-        <ScanChart
-          data={dailyData}
-          title="Last 30 Days"
-          height={200}
-        />
-      </div>
-
       {/* QR Code Info */}
       <div className="bg-surface/50 rounded-xl p-4 border border-border">
         <div className="flex items-center space-x-3">
