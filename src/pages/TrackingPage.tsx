@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { ExternalLink, BarChart3, Shield, AlertTriangle, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { logScanEvent, validateQRCode, getScanMetadata } from '../lib/qrTracker';
+import BoltBadge from '../components/BoltBadge';
 
 interface TrackingState {
   status: 'loading' | 'success' | 'error' | 'redirecting';
@@ -312,6 +313,9 @@ const TrackingPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Bolt.new Badge */}
+      <BoltBadge />
     </div>
   );
 };

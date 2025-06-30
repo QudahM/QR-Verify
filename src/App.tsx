@@ -8,6 +8,7 @@ import Hero from './components/Hero';
 import AuthModal from './components/auth/AuthModal';
 import Dashboard from './components/dashboard/Dashboard';
 import TrackingPage from './pages/TrackingPage';
+import BoltBadge from './components/BoltBadge';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 
@@ -128,6 +129,9 @@ function MainApp() {
 
       {/* Auth Modal */}
       <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+
+      {/* Bolt.new Badge */}
+      <BoltBadge />
     </div>
   );
 }
