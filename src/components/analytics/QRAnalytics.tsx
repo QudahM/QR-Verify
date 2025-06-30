@@ -198,8 +198,9 @@ const QRAnalytics: React.FC<QRAnalyticsProps> = ({ qrCodeId, qrCodeContent, qrCo
                 )}
               </div>
             )}
-
-            {/* Analytics Features Grid */}
+            
+          </div>
+          {/* Analytics Features Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="bg-primary/5 rounded-lg p-4 border border-primary/10">
                 <div className="flex items-center space-x-3 mb-3">
@@ -302,7 +303,6 @@ const QRAnalytics: React.FC<QRAnalyticsProps> = ({ qrCodeId, qrCodeContent, qrCo
                 <p>• All data is encrypted and securely stored</p>
               </div>
             </div>
-          </div>
         </div>
       </div>
 
