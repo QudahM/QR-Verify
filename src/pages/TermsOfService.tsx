@@ -13,7 +13,7 @@ const TermsOfService: React.FC = () => {
             </div>
             <div>
               <h1 className="text-xl font-semibold text-foreground">Terms of Service</h1>
-              <p className="text-xs text-muted-foreground font-medium">Last updated: December 30, 2024</p>
+              <p className="text-xs text-muted-foreground font-medium">Last updated: June 30, 2025</p>
             </div>
           </div>
         </div>
