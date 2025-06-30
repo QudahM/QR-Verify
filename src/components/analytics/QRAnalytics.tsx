@@ -143,6 +143,20 @@ const QRAnalytics: React.FC<QRAnalyticsProps> = ({ qrCodeId, qrCodeContent, qrCo
       {qrCodeData?.is_tracked && qrCodeData?.tracking_url && (
         <div className="bg-surface/50 rounded-xl p-6 border border-border">
           <div className="space-y-6">
+
+            {/* Charts */}
+            <div className="grid lg:grid-cols-2 gap-6">
+              <ScanChart
+                data={weeklyData}
+                title="Last 7 Days"
+                height={200}
+              />
+              <ScanChart
+                data={dailyData}
+                title="Last 30 Days"
+                height={200}
+              />
+            </div>
             
             {/* Tracking Status Header */}
             <div className="flex items-center space-x-3">
@@ -158,49 +172,7 @@ const QRAnalytics: React.FC<QRAnalyticsProps> = ({ qrCodeId, qrCodeContent, qrCo
               </div>
             </div>
 
-            
-            {/* Charts */}
-            <div className="grid lg:grid-cols-2 gap-6">
-              <ScanChart
-                data={weeklyData}
-                title="Last 7 Days"
-                height={200}
-              />
-              <ScanChart
-                data={dailyData}
-                title="Last 30 Days"
-                height={200}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* QR Code Info */}
-      <div className="bg-surface/50 rounded-xl p-4 border border-border">
-        <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 bg-info/10 rounded-lg flex items-center justify-center">
-            <TrendingUp className="w-4 h-4 text-info" strokeWidth={1.5} />
-          </div>
-          <div className="flex-1">
-            <h5 className="text-sm font-medium text-foreground mb-1">QR Code Content</h5>
-            <p className="text-xs text-muted-foreground break-all">{qrCodeContent}</p>
-            {qrCodeData && (
-              <div className="flex items-center space-x-4 mt-2 text-xs text-muted-foreground">
-                <span>Type: {qrCodeData.type}</span>
-                <span>•</span>
-                <span>Created: {new Date(qrCodeData.created_at).toLocaleDateString()}</span>
-                {qrCodeData.is_tracked && (
-                  <>
-                    <span>•</span>
-                    <span className="text-success">Tracking Enabled</span>
-                  </>
-                )}
-              </div>
-            )}
-            
-          </div>
-          {/* Analytics Features Grid */}
+            {/* Analytics Features Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="bg-primary/5 rounded-lg p-4 border border-primary/10">
                 <div className="flex items-center space-x-3 mb-3">
@@ -303,6 +275,33 @@ const QRAnalytics: React.FC<QRAnalyticsProps> = ({ qrCodeId, qrCodeContent, qrCo
                 <p>• All data is encrypted and securely stored</p>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* QR Code Info */}
+      <div className="bg-surface/50 rounded-xl p-4 border border-border">
+        <div className="flex items-center space-x-3">
+          <div className="w-8 h-8 bg-info/10 rounded-lg flex items-center justify-center">
+            <TrendingUp className="w-4 h-4 text-info" strokeWidth={1.5} />
+          </div>
+          <div className="flex-1">
+            <h5 className="text-sm font-medium text-foreground mb-1">QR Code Content</h5>
+            <p className="text-xs text-muted-foreground break-all">{qrCodeContent}</p>
+            {qrCodeData && (
+              <div className="flex items-center space-x-4 mt-2 text-xs text-muted-foreground">
+                <span>Type: {qrCodeData.type}</span>
+                <span>•</span>
+                <span>Created: {new Date(qrCodeData.created_at).toLocaleDateString()}</span>
+                {qrCodeData.is_tracked && (
+                  <>
+                    <span>•</span>
+                    <span className="text-success">Tracking Enabled</span>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
