@@ -301,7 +301,7 @@ const QRGenerator: React.FC = () => {
             {inputType === 'url' && input.trim() && user && (
               <div className="bg-info/10 rounded-xl p-4 border border-info/20">
                 <div className="flex items-center space-x-3">
-                  <div className="text-2xl">📊</div>
+                  <BarChart3 className="w-5 h-5 text-info" strokeWidth={1.5} />
                   <div className="flex-1">
                     <h4 className="text-sm font-medium text-info mb-1">
                       Tracking Available
@@ -525,7 +525,7 @@ const QRGenerator: React.FC = () => {
                 <div className="bg-success/10 rounded-xl p-4 border border-success/20">
                   <div className="text-center">
                     <div className="flex items-center justify-center space-x-2 mb-2">
-                      <div className="text-xl">📊</div>
+                      <BarChart3 className="w-5 h-5 text-success" strokeWidth={1.5} />
                       <h4 className="text-sm font-medium text-success">Tracking Active</h4>
                     </div>
                     <p className="text-xs text-success/80">
