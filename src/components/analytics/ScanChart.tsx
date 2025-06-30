@@ -109,31 +109,54 @@ const ScanChart: React.FC<ScanChartProps> = ({ data, title, height = 200 }) => {
                 {/* Hover tooltip */}
                 {hoveredIndex === index && (
                   <g>
-                    <rect
-                      x={`calc(${x} + 10px)`}
-                      y={y - 35}
-                      width="80"
-                      height="30"
-                      className="fill-foreground"
-                      rx="4"
-                      opacity="0.9"
-                    />
-                    <text
-                      x={`calc(${x} + 50px)`}
-                      y={y - 20}
-                      textAnchor="middle"
-                      className="fill-background text-xs font-medium"
-                    >
-                      {item.scan_count} scans
-                    </text>
-                    <text
-                      x={`calc(${x} + 50px)`}
-                      y={y - 8}
-                      textAnchor="middle"
-                      className="fill-background text-xs opacity-70"
-                    >
-                      {formatDate(item.scan_date)}
-                    </text>
+                    {/* Calculate tooltip position to keep it within bounds */}
+                    {(() => {
+                      const tooltipWidth = 80;
+                      const chartWidth = 100; // percentage
+                      const barPosition = (index / data.length) * chartWidth;
+                      
+                      // If tooltip would go beyond right edge, position it to the left of the bar
+                      const shouldPositionLeft = barPosition > chartWidth - 25;
+                      const tooltipX = shouldPositionLeft 
+                        ? `calc(${x} - ${tooltipWidth}px)` 
+                        : `calc(${x} + 10px)`;
+                      
+                      return (
+                        <>
+                          <rect
+                            x={tooltipX}
+                            y={y - 35}
+                            width={tooltipWidth}
+                            height="30"
+                            className="fill-foreground"
+                            rx="4"
+                            opacity="0.95"
+                          />
+                          <text
+                            x={shouldPositionLeft 
+                              ? `calc(${x} - ${tooltipWidth/2}px)` 
+                              : `calc(${x} + ${tooltipWidth/2}px)`
+                            }
+                            y={y - 20}
+                            textAnchor="middle"
+                            className="fill-background text-xs font-medium"
+                          >
+                            {item.scan_count} scans
+                          </text>
+                          <text
+                            x={shouldPositionLeft 
+                              ? `calc(${x} - ${tooltipWidth/2}px)` 
+                              : `calc(${x} + ${tooltipWidth/2}px)`
+                            }
+                            y={y - 8}
+                            textAnchor="middle"
+                            className="fill-background text-xs opacity-70"
+                          >
+                            {formatDate(item.scan_date)}
+                          </text>
+                        </>
+                      );
+                    })()}
                   </g>
                 )}
               </g>
