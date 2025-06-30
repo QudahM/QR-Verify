@@ -243,18 +243,32 @@ export const validateQRCode = async (qrCodeId: string): Promise<any | null> => {
   try {
     console.log('Validating QR code with ID:', qrCodeId);
     
-    const { data, error } = await supabase
-      .rpc('get_qr_code_by_any_id', { p_qr_id: qrCodeId });
+    // First try to find by tracked ID
+    let { data, error } = await supabase
+      .from('qr_codes')
+      .select('*')
+      .eq('id', qrCodeId)
+      .single();
 
-    if (error) {
-      console.error('Error validating QR code:', error);
-      return null;
+    if (!error && data) {
+      console.log('Found QR code by tracked ID:', data);
+      return data;
     }
 
-    const result = data?.[0] || null;
-    console.log('QR code validation result:', result);
-    
-    return result;
+    // If not found by tracked ID, try by original_qr_id
+    ({ data, error } = await supabase
+      .from('qr_codes')
+      .select('*')
+      .eq('original_qr_id', qrCodeId)
+      .single());
+
+    if (!error && data) {
+      console.log('Found QR code by original ID:', data);
+      return data;
+    }
+
+    console.log('QR code not found with ID:', qrCodeId);
+    return null;
   } catch (error) {
     console.error('Failed to validate QR code:', error);
     return null;

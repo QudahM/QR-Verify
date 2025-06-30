@@ -66,6 +66,21 @@ const TrackingPage: React.FC = () => {
           return;
         }
 
+        // Ensure the URL has a protocol
+        if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+          // Check if it looks like a domain
+          if (targetUrl.includes('.') && !targetUrl.includes(' ')) {
+            targetUrl = 'https://' + targetUrl;
+          } else {
+            // If it's not a URL, show error
+            setState({
+              status: 'error',
+              message: 'Invalid destination URL format'
+            });
+            return;
+          }
+        }
+
         // Step 3: Log scan event (only for tracked QR codes)
         if (qrCodeData.is_tracked) {
           console.log('Logging scan for tracked QR code:', qrCodeData.id);
@@ -106,6 +121,7 @@ const TrackingPage: React.FC = () => {
             
             // Perform redirect
             setTimeout(() => {
+              console.log('Redirecting to:', targetUrl);
               window.location.href = targetUrl;
             }, 500);
           } else {
@@ -131,6 +147,7 @@ const TrackingPage: React.FC = () => {
     if (state.redirectUrl) {
       setState(prev => ({ ...prev, status: 'redirecting', message: 'Redirecting now...' }));
       setTimeout(() => {
+        console.log('Manual redirect to:', state.redirectUrl);
         window.location.href = state.redirectUrl!;
       }, 500);
     }
