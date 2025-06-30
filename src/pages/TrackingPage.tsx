@@ -30,9 +30,9 @@ const TrackingPage: React.FC = () => {
       }
 
       try {
-        console.log('Processing QR code scan for tracked ID:', qrCodeId);
+        console.log('Processing QR code scan for ID:', qrCodeId);
 
-        // Step 1: Validate QR code exists (this now works with both tracked and original IDs)
+        // Step 1: Validate QR code exists
         const qrCodeData = await validateQRCode(qrCodeId);
         if (!qrCodeData) {
           setState({
@@ -44,18 +44,19 @@ const TrackingPage: React.FC = () => {
 
         console.log('QR code validated:', qrCodeData);
 
-        // Step 2: Only log scans for tracked QR codes (those with is_tracked = true)
-        if (!qrCodeData.is_tracked) {
-          setState({
-            status: 'error',
-            message: 'This QR code is not configured for tracking'
-          });
-          return;
-        }
-
-        // Step 3: Get redirect URL
+        // Step 2: Get redirect URL from query params or QR code content
         const redirectParam = searchParams.get('redirect');
-        const targetUrl = redirectParam ? decodeURIComponent(redirectParam) : qrCodeData.content;
+        let targetUrl: string;
+        
+        if (redirectParam) {
+          // URL from tracking parameter
+          targetUrl = decodeURIComponent(redirectParam);
+          console.log('Using redirect parameter:', targetUrl);
+        } else {
+          // Fallback to QR code content
+          targetUrl = qrCodeData.content;
+          console.log('Using QR code content:', targetUrl);
+        }
         
         if (!targetUrl) {
           setState({
@@ -65,34 +66,37 @@ const TrackingPage: React.FC = () => {
           return;
         }
 
-        console.log('Target URL:', targetUrl);
+        // Step 3: Log scan event (only for tracked QR codes)
+        if (qrCodeData.is_tracked) {
+          console.log('Logging scan for tracked QR code:', qrCodeData.id);
+          
+          const metadata = await getScanMetadata();
+          console.log('Scan metadata:', metadata);
 
-        // Step 4: Get scan metadata (no location tracking)
-        const metadata = await getScanMetadata();
-        console.log('Scan metadata:', metadata);
+          const scanLogged = await logScanEvent({
+            qr_code_id: qrCodeData.id, // Use the tracked QR code ID
+            ...metadata,
+          });
 
-        // Step 5: Log scan event using the tracked QR code ID
-        const scanLogged = await logScanEvent({
-          qr_code_id: qrCodeData.id, // Use the tracked QR code ID for analytics
-          ...metadata,
-        });
-
-        if (!scanLogged) {
-          console.warn('Failed to log scan event, but continuing with redirect');
+          if (!scanLogged) {
+            console.warn('Failed to log scan event, but continuing with redirect');
+          } else {
+            console.log('Scan event logged successfully');
+          }
         } else {
-          console.log('Scan event logged successfully for tracked QR code:', qrCodeData.id);
+          console.log('QR code is not tracked, skipping scan logging');
         }
 
-        // Step 6: Update state and start countdown
+        // Step 4: Update state and start countdown
         setState({
           status: 'success',
-          message: 'Scan recorded successfully',
+          message: qrCodeData.is_tracked ? 'Scan recorded successfully' : 'Redirecting to destination',
           qrCodeData,
           redirectUrl: targetUrl,
           countdown: 3
         });
 
-        // Step 7: Start countdown and redirect
+        // Step 5: Start countdown and redirect
         let timeLeft = 3;
         const timer = setInterval(() => {
           timeLeft--;
@@ -241,7 +245,7 @@ const TrackingPage: React.FC = () => {
                 </div>
                 <div>
                   <span className="block font-medium">Total Scans</span>
-                  <span>{(state.qrCodeData.scan_count || 0) + 1}</span>
+                  <span>{(state.qrCodeData.scan_count || 0) + (state.qrCodeData.is_tracked ? 1 : 0)}</span>
                 </div>
               </div>
               {state.qrCodeData.is_tracked && (
@@ -281,6 +285,7 @@ const TrackingPage: React.FC = () => {
                     isTracked: state.qrCodeData?.is_tracked,
                     trackedId: state.qrCodeData?.id,
                     originalId: state.qrCodeData?.original_qr_id,
+                    redirectUrl: state.redirectUrl,
                     userAgent: navigator.userAgent.substring(0, 50) + '...',
                     referrer: document.referrer || 'none',
                   }, null, 2)}

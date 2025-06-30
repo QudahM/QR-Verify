@@ -27,11 +27,11 @@ export interface QRCodeCreationResult {
   trackingUrl: string;
 }
 
-// Generate a unique tracking URL for a QR code using custom subdomain
+// Generate a unique tracking URL for a QR code using the main domain
 export const generateTrackingUrl = (qrCodeId: string, originalUrl: string): string => {
-  const trackingDomain = 'https://track.qrnexus.site';
+  const baseUrl = window.location.origin;
   const encodedUrl = encodeURIComponent(originalUrl);
-  return `${trackingDomain}/track/${qrCodeId}?redirect=${encodedUrl}`;
+  return `${baseUrl}/track/${qrCodeId}?redirect=${encodedUrl}`;
 };
 
 // Create a tracked QR code record in Supabase
@@ -241,6 +241,8 @@ export const subscribeToQRCodeUpdates = (userId: string, callback: (payload: any
 // Validate QR code exists and get its data (works for both tracked and original IDs)
 export const validateQRCode = async (qrCodeId: string): Promise<any | null> => {
   try {
+    console.log('Validating QR code with ID:', qrCodeId);
+    
     const { data, error } = await supabase
       .rpc('get_qr_code_by_any_id', { p_qr_id: qrCodeId });
 
@@ -249,7 +251,10 @@ export const validateQRCode = async (qrCodeId: string): Promise<any | null> => {
       return null;
     }
 
-    return data?.[0] || null;
+    const result = data?.[0] || null;
+    console.log('QR code validation result:', result);
+    
+    return result;
   } catch (error) {
     console.error('Failed to validate QR code:', error);
     return null;
