@@ -27,32 +27,25 @@ export interface DailyScanData {
   scan_count: number;
 }
 
-// Generate a tracking URL using the custom subdomain
+// Generate a unique tracking URL for a QR code
 export const generateTrackingUrl = (qrCodeId: string, originalUrl: string): string => {
-  const trackingDomain = 'https://track.qrnexus.site';
+  const baseUrl = window.location.origin;
+  const trackingUrl = `${baseUrl}/track/${qrCodeId}`;
+  
+  // Store the original URL in the tracking URL as a parameter
   const encodedUrl = encodeURIComponent(originalUrl);
-  return `${trackingDomain}/track/${qrCodeId}?redirect=${encodedUrl}`;
+  return `${trackingUrl}?redirect=${encodedUrl}`;
 };
 
-// Log a scan event with comprehensive metadata
+// Log a scan event
 export const logScanEvent = async (scanEvent: ScanEvent): Promise<void> => {
   try {
-    // Get IP address from a service
-    let ipAddress = null;
-    try {
-      const ipResponse = await fetch('https://api.ipify.org?format=json');
-      const ipData = await ipResponse.json();
-      ipAddress = ipData.ip;
-    } catch (error) {
-      console.log('Could not fetch IP address:', error);
-    }
-
     const { error } = await supabase
       .from('qr_scans')
       .insert({
         qr_code_id: scanEvent.qr_code_id,
         user_agent: scanEvent.user_agent,
-        ip_address: ipAddress,
+        ip_address: scanEvent.ip_address,
         location: scanEvent.location,
         referrer: scanEvent.referrer,
         session_id: scanEvent.session_id,
@@ -61,13 +54,9 @@ export const logScanEvent = async (scanEvent: ScanEvent): Promise<void> => {
 
     if (error) {
       console.error('Error logging scan event:', error);
-      throw error;
     }
-
-    console.log('Scan event logged successfully');
   } catch (error) {
     console.error('Failed to log scan event:', error);
-    throw error;
   }
 };
 
@@ -82,13 +71,7 @@ export const getScanAnalytics = async (qrCodeId: string): Promise<ScanAnalytics 
       return null;
     }
 
-    return data?.[0] || {
-      total_scans: 0,
-      today_scans: 0,
-      week_scans: 0,
-      month_scans: 0,
-      unique_sessions: 0,
-    };
+    return data?.[0] || null;
   } catch (error) {
     console.error('Failed to fetch scan analytics:', error);
     return null;
@@ -174,11 +157,9 @@ export const updateQRCodeWithTracking = async (qrCodeId: string, trackingUrl: st
 
     if (error) {
       console.error('Error updating QR code with tracking URL:', error);
-      throw error;
     }
   } catch (error) {
     console.error('Failed to update QR code with tracking URL:', error);
-    throw error;
   }
 };
 
@@ -197,25 +178,4 @@ export const subscribeToScanEvents = (qrCodeId: string, callback: (payload: any)
       callback
     )
     .subscribe();
-};
-
-// Validate QR code exists and get its data
-export const getQRCodeData = async (qrCodeId: string) => {
-  try {
-    const { data, error } = await supabase
-      .from('qr_codes')
-      .select('*')
-      .eq('id', qrCodeId)
-      .single();
-
-    if (error) {
-      console.error('Error fetching QR code data:', error);
-      return null;
-    }
-
-    return data;
-  } catch (error) {
-    console.error('Failed to fetch QR code data:', error);
-    return null;
-  }
 };
