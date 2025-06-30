@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { QrCode, Download, Trash2, Calendar, Link, Type, Search, Filter, Grid, List, BarChart3, Eye } from 'lucide-react';
+import { QrCode, Download, Trash2, Calendar, Link, Type, Search, Filter, Grid, List, BarChart3, Eye, RefreshCw, ExternalLink } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
-import { generateTrackingUrl, updateQRCodeWithTracking } from '../../lib/qrTracker';
+import { subscribeToQRCodeUpdates } from '../../lib/qrTracker';
 import QRAnalytics from '../analytics/QRAnalytics';
 
 interface QRCodeRecord {
@@ -20,6 +20,7 @@ const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const [qrCodes, setQrCodes] = useState<QRCodeRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'text' | 'url'>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -29,71 +30,69 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     if (user) {
       fetchQRCodes();
+      setupRealTimeSubscription();
     }
-    // eslint-disable-next-line
   }, [user]);
 
-  // Real-time subscription for qr_codes updates
-  useEffect(() => {
+  const setupRealTimeSubscription = () => {
     if (!user) return;
 
-    const channel = supabase
-      .channel('qr_codes_updates')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'qr_codes',
-          filter: `user_id=eq.${user.id}`
-        },
-        (payload) => {
-          setQrCodes(prev =>
-            prev.map(qr =>
-              qr.id === payload.new.id
-                ? { ...qr, scan_count: payload.new.scan_count, last_scanned_at: payload.new.last_scanned_at }
-                : qr
-            )
-          );
-        }
-      )
-      .subscribe();
+    console.log('Setting up real-time subscription for dashboard');
+    
+    const subscription = subscribeToQRCodeUpdates(user.id, (payload) => {
+      console.log('Dashboard received QR code update:', payload);
+      
+      // Update the specific QR code in our state
+      setQrCodes(prev => 
+        prev.map(qr => 
+          qr.id === payload.new.id 
+            ? { 
+                ...qr, 
+                scan_count: payload.new.scan_count, 
+                last_scanned_at: payload.new.last_scanned_at 
+              }
+            : qr
+        )
+      );
+    });
 
     return () => {
-      channel.unsubscribe();
+      console.log('Cleaning up dashboard subscription');
+      subscription.unsubscribe();
     };
-  }, [user]);
+  };
 
-  const fetchQRCodes = async () => {
+  const fetchQRCodes = async (showRefreshing = false) => {
+    if (showRefreshing) setRefreshing(true);
+    
     try {
+      console.log('Fetching QR codes for user:', user?.id);
+      
       const { data, error } = await supabase
         .from('qr_codes')
         .select('*')
         .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching QR codes:', error);
+        throw error;
+      }
 
-      const qrCodesWithTracking = data?.map(qr => {
-        // Generate tracking URL if it doesn't exist
-        if (!qr.tracking_url && qr.type === 'url') {
-          const trackingUrl = generateTrackingUrl(qr.id, qr.content);
-          updateQRCodeWithTracking(qr.id, trackingUrl);
-          return { ...qr, tracking_url: trackingUrl };
-        }
-        return qr;
-      }) || [];
-
-      setQrCodes(qrCodesWithTracking);
+      console.log('Fetched QR codes:', data);
+      setQrCodes(data || []);
     } catch (error) {
       console.error('Error fetching QR codes:', error);
     } finally {
       setLoading(false);
+      if (showRefreshing) setRefreshing(false);
     }
   };
 
   const deleteQRCode = async (id: string) => {
     try {
+      console.log('Deleting QR code:', id);
+      
       const { error } = await supabase
         .from('qr_codes')
         .delete()
@@ -101,6 +100,7 @@ const Dashboard: React.FC = () => {
         .eq('user_id', user?.id);
 
       if (error) throw error;
+      
       setQrCodes(qrCodes.filter(qr => qr.id !== id));
 
       // Close analytics if the deleted QR was selected
@@ -108,6 +108,8 @@ const Dashboard: React.FC = () => {
         setSelectedQR(null);
         setShowAnalytics(false);
       }
+      
+      console.log('QR code deleted successfully');
     } catch (error) {
       console.error('Error deleting QR code:', error);
     }
@@ -125,6 +127,12 @@ const Dashboard: React.FC = () => {
   const viewAnalytics = (qrCode: QRCodeRecord) => {
     setSelectedQR(qrCode);
     setShowAnalytics(true);
+  };
+
+  const openTrackingUrl = (qrCode: QRCodeRecord) => {
+    if (qrCode.tracking_url) {
+      window.open(qrCode.tracking_url, '_blank');
+    }
   };
 
   const filteredQRCodes = qrCodes.filter(qr => {
@@ -157,10 +165,17 @@ const Dashboard: React.FC = () => {
     return date.toLocaleDateString();
   };
 
+  const getTotalScans = () => {
+    return qrCodes.reduce((sum, qr) => sum + qr.scan_count, 0);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading your QR codes...</p>
+        </div>
       </div>
     );
   }
@@ -197,6 +212,15 @@ const Dashboard: React.FC = () => {
                   <Type className="w-5 h-5 text-primary" strokeWidth={1.5} />
                 )}
                 <span className="text-sm font-medium text-foreground capitalize">{selectedQR.type}</span>
+                {selectedQR.tracking_url && (
+                  <button
+                    onClick={() => openTrackingUrl(selectedQR)}
+                    className="flex items-center space-x-1 px-2 py-1 bg-info/10 hover:bg-info/20 rounded-lg border border-info/20 transition-colors"
+                  >
+                    <ExternalLink className="w-3 h-3 text-info" strokeWidth={1.5} />
+                    <span className="text-xs text-info">Test Tracking</span>
+                  </button>
+                )}
               </div>
               <p className="text-foreground font-medium mb-1 break-all">{selectedQR.content}</p>
               <div className="flex items-center space-x-4 text-sm text-muted-foreground">
@@ -244,8 +268,19 @@ const Dashboard: React.FC = () => {
               className="w-full pl-10 pr-4 py-3 bg-input border border-border rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary/50 text-foreground placeholder-muted-foreground transition-all duration-200"
             />
           </div>
+          
           {/* Filter and View Controls */}
           <div className="flex items-center space-x-3">
+            {/* Refresh Button */}
+            <button
+              onClick={() => fetchQRCodes(true)}
+              disabled={refreshing}
+              className="flex items-center space-x-2 px-3 py-2 bg-surface hover:bg-surface-hover disabled:bg-surface/50 rounded-xl border border-border transition-colors"
+            >
+              <RefreshCw className={`w-4 h-4 text-muted-foreground ${refreshing ? 'animate-spin' : ''}`} strokeWidth={1.5} />
+              <span className="text-sm">Refresh</span>
+            </button>
+            
             {/* Filter */}
             <div className="relative">
               <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" strokeWidth={1.5} />
@@ -295,7 +330,7 @@ const Dashboard: React.FC = () => {
             <div className="flex items-center space-x-4 text-muted-foreground">
               <span>{qrCodes.filter(qr => qr.type === 'url').length} URLs</span>
               <span>{qrCodes.filter(qr => qr.type === 'text').length} Text</span>
-              <span>{qrCodes.reduce((sum, qr) => sum + qr.scan_count, 0)} Total Scans</span>
+              <span>{getTotalScans()} Total Scans</span>
             </div>
           </div>
         </div>
@@ -341,6 +376,7 @@ const Dashboard: React.FC = () => {
                       />
                     </div>
                   </div>
+                  
                   {/* Content */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
@@ -356,6 +392,7 @@ const Dashboard: React.FC = () => {
                         )}
                         <span className="text-sm font-medium text-foreground capitalize">{qrCode.type}</span>
                       </div>
+                      
                       {/* Scan Count Badge */}
                       <div className="flex items-center space-x-1 px-2 py-1 bg-success/10 rounded-full border border-success/20">
                         <Eye className="w-3 h-3 text-success" strokeWidth={1.5} />
@@ -420,6 +457,15 @@ const Dashboard: React.FC = () => {
                         <Type className="w-4 h-4 text-primary" strokeWidth={1.5} />
                       )}
                       <span className="text-sm font-medium text-foreground capitalize">{qrCode.type}</span>
+                      {qrCode.tracking_url && (
+                        <button
+                          onClick={() => openTrackingUrl(qrCode)}
+                          className="flex items-center space-x-1 px-2 py-1 bg-info/10 hover:bg-info/20 rounded-lg border border-info/20 transition-colors"
+                        >
+                          <ExternalLink className="w-3 h-3 text-info" strokeWidth={1.5} />
+                          <span className="text-xs text-info">Test</span>
+                        </button>
+                      )}
                     </div>
                     <p className="text-foreground font-medium break-all">{qrCode.content}</p>
                     <div className="flex items-center space-x-3 text-xs text-muted-foreground">
@@ -440,18 +486,20 @@ const Dashboard: React.FC = () => {
                       <BarChart3 className="w-4 h-4" strokeWidth={1.5} />
                       <span>Analytics</span>
                     </button>
-                    <button
-                      onClick={() => downloadQRCode(qrCode)}
-                      className="bg-success hover:bg-success/90 text-white p-2 rounded-xl transition-all duration-200"
-                    >
-                      <Download className="w-4 h-4" strokeWidth={1.5} />
-                    </button>
-                    <button
-                      onClick={() => deleteQRCode(qrCode.id)}
-                      className="bg-destructive/10 hover:bg-destructive/20 text-destructive p-2 rounded-xl transition-all duration-200 border border-destructive/20"
-                    >
-                      <Trash2 className="w-4 h-4" strokeWidth={1.5} />
-                    </button>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => downloadQRCode(qrCode)}
+                        className="bg-success hover:bg-success/90 text-white p-2 rounded-xl transition-all duration-200"
+                      >
+                        <Download className="w-4 h-4" strokeWidth={1.5} />
+                      </button>
+                      <button
+                        onClick={() => deleteQRCode(qrCode.id)}
+                        className="bg-destructive/10 hover:bg-destructive/20 text-destructive p-2 rounded-xl transition-all duration-200 border border-destructive/20"
+                      >
+                        <Trash2 className="w-4 h-4" strokeWidth={1.5} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}

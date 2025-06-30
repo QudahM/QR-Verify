@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Download, Link, Type, Zap, Copy, Check, QrCode, Save, Palette, BarChart3 } from 'lucide-react';
+import { Download, Link, Type, Zap, Copy, Check, QrCode, Save, Palette, BarChart3, ExternalLink } from 'lucide-react';
 import QRCode from 'qrcode';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -15,6 +15,7 @@ const QRGenerator: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
   const [showCustomizer, setShowCustomizer] = useState(false);
+  const [generatedQRId, setGeneratedQRId] = useState<string | null>(null);
 
   const { user } = useAuth();
 
@@ -23,10 +24,8 @@ const QRGenerator: React.FC = () => {
 
     setIsGenerating(true);
     try {
-      const actualUrl = inputType === 'url'
-      ? generateTrackingUrl('temp-id', input) // or use proper ID if available
-      : input;
-      
+      // For URLs, we'll generate the tracking URL after saving to get the actual QR code ID
+      // For now, generate QR with original content
       const dataUrl = await QRCode.toDataURL(input, {
         width: 512,
         margin: 2,
@@ -38,6 +37,7 @@ const QRGenerator: React.FC = () => {
       });
       setQrDataUrl(dataUrl);
       setSaved(false);
+      setGeneratedQRId(null);
     } catch (error) {
       console.error('Error generating QR code:', error);
     } finally {
@@ -50,30 +50,59 @@ const QRGenerator: React.FC = () => {
 
     setIsSaving(true);
     try {
-      // Generate tracking URL for URLs
-      let trackingUrl = undefined;
-      if (inputType === 'url') {
-        trackingUrl = generateTrackingUrl('temp-id', input);
-      }
+      console.log('Saving QR code for user:', user.id);
+      console.log('Input type:', inputType);
+      console.log('Content:', input);
 
-      const { data, error } = await supabase
+      // First, insert the QR code record
+      const { data: qrCodeData, error: insertError } = await supabase
         .from('qr_codes')
         .insert({
           user_id: user.id,
           content: input,
           type: inputType,
           qr_data_url: qrDataUrl,
-          tracking_url: trackingUrl,
+          tracking_url: null, // Will be updated below for URLs
         })
         .select()
         .single();
 
-      if (error) throw error;
+      if (insertError) throw insertError;
       
-      // Update tracking URL with actual QR code ID
-      if (trackingUrl && data) {
-        const actualTrackingUrl = generateTrackingUrl(data.id, input);
-        await updateQRCodeWithTracking(data.id, actualTrackingUrl);
+      console.log('QR code saved:', qrCodeData);
+      setGeneratedQRId(qrCodeData.id);
+
+      // For URLs, generate tracking URL and update the record
+      if (inputType === 'url') {
+        const trackingUrl = generateTrackingUrl(qrCodeData.id, input);
+        console.log('Generated tracking URL:', trackingUrl);
+        
+        // Update the QR code record with the tracking URL
+        await updateQRCodeWithTracking(qrCodeData.id, trackingUrl);
+        
+        // Regenerate QR code with tracking URL
+        const trackingQRDataUrl = await QRCode.toDataURL(trackingUrl, {
+          width: 512,
+          margin: 2,
+          color: {
+            dark: '#021526',
+            light: '#E2DAD6',
+          },
+          errorCorrectionLevel: 'H',
+        });
+        
+        // Update the QR code record with the new QR data URL
+        const { error: updateError } = await supabase
+          .from('qr_codes')
+          .update({ qr_data_url: trackingQRDataUrl })
+          .eq('id', qrCodeData.id);
+
+        if (updateError) {
+          console.error('Error updating QR code with tracking data:', updateError);
+        } else {
+          setQrDataUrl(trackingQRDataUrl);
+          console.log('QR code updated with tracking URL');
+        }
       }
       
       setSaved(true);
@@ -112,7 +141,10 @@ const QRGenerator: React.FC = () => {
     const value = e.target.value;
     setInput(value);
     
-    if (value.startsWith('http://') || value.startsWith('https://') || value.includes('.com') || value.includes('.org')) {
+    // Auto-detect URL format
+    if (value.startsWith('http://') || value.startsWith('https://') || 
+        (value.includes('.') && (value.includes('.com') || value.includes('.org') || 
+         value.includes('.net') || value.includes('.edu') || value.includes('.gov')))) {
       setInputType('url');
     } else {
       setInputType('text');
@@ -122,6 +154,13 @@ const QRGenerator: React.FC = () => {
   const handleCustomQRGenerated = (dataUrl: string) => {
     setQrDataUrl(dataUrl);
     setSaved(false);
+  };
+
+  const getTrackingPreview = () => {
+    if (inputType === 'url' && input.trim()) {
+      return generateTrackingUrl('preview-id', input);
+    }
+    return null;
   };
 
   return (
@@ -193,6 +232,30 @@ const QRGenerator: React.FC = () => {
               </div>
             </div>
 
+            {/* Tracking Preview */}
+            {inputType === 'url' && input.trim() && user && (
+              <div className="bg-info/10 rounded-xl p-4 border border-info/20">
+                <div className="flex items-start space-x-3">
+                  <BarChart3 className="w-5 h-5 text-info mt-0.5" strokeWidth={1.5} />
+                  <div className="flex-1">
+                    <h4 className="text-sm font-medium text-info mb-2">Tracking Enabled</h4>
+                    <p className="text-xs text-info/80 mb-3">
+                      Your QR code will redirect through our tracking system:
+                    </p>
+                    <div className="bg-info/5 rounded-lg p-3 border border-info/10">
+                      <p className="text-xs font-mono text-info break-all">
+                        {getTrackingPreview()?.replace('preview-id', '{qr-id}')}
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-2 mt-2">
+                      <ExternalLink className="w-3 h-3 text-info/60" strokeWidth={1.5} />
+                      <span className="text-xs text-info/60">Users will be seamlessly redirected to your original URL</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-3">
               <button
                 onClick={generateQR}
@@ -222,19 +285,6 @@ const QRGenerator: React.FC = () => {
                 </button>
               )}
             </div>
-
-            {/* Analytics Info */}
-            {inputType === 'url' && user && (
-              <div className="bg-info/10 rounded-xl p-4 border border-info/20">
-                <div className="flex items-center space-x-3">
-                  <BarChart3 className="w-5 h-5 text-info" strokeWidth={1.5} />
-                  <div>
-                    <h4 className="text-sm font-medium text-info">Analytics Enabled</h4>
-                    <p className="text-xs text-info/80">This URL will be tracked with real-time scan analytics</p>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
 
@@ -293,6 +343,23 @@ const QRGenerator: React.FC = () => {
                   </button>
                 )}
               </div>
+
+              {/* QR Code Info */}
+              {saved && generatedQRId && inputType === 'url' && (
+                <div className="bg-success/10 rounded-xl p-4 border border-success/20">
+                  <div className="text-center">
+                    <h4 className="text-sm font-medium text-success mb-2">Tracking Active</h4>
+                    <p className="text-xs text-success/80 mb-3">
+                      Your QR code is now being tracked. All scans will be recorded in your dashboard.
+                    </p>
+                    <div className="bg-success/5 rounded-lg p-3 border border-success/10">
+                      <p className="text-xs font-mono text-success break-all">
+                        {generateTrackingUrl(generatedQRId, input)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="text-center py-20">
