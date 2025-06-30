@@ -23,10 +23,8 @@ const QRGenerator: React.FC = () => {
 
     setIsGenerating(true);
     try {
-      const actualUrl = inputType === 'url'
-      ? generateTrackingUrl('temp-id', input) // or use proper ID if available
-      : input;
-      
+      // For URLs, we'll generate the tracking URL after saving to get the actual QR code ID
+      // For now, generate QR with original content
       const dataUrl = await QRCode.toDataURL(input, {
         width: 512,
         margin: 2,
@@ -50,30 +48,54 @@ const QRGenerator: React.FC = () => {
 
     setIsSaving(true);
     try {
-      // Generate tracking URL for URLs
-      let trackingUrl = undefined;
-      if (inputType === 'url') {
-        trackingUrl = generateTrackingUrl('temp-id', input);
-      }
+      console.log('Saving QR code...', { inputType, input });
 
-      const { data, error } = await supabase
+      // First, save the QR code to get an ID
+      const { data: qrCodeData, error: insertError } = await supabase
         .from('qr_codes')
         .insert({
           user_id: user.id,
           content: input,
           type: inputType,
           qr_data_url: qrDataUrl,
-          tracking_url: trackingUrl,
         })
         .select()
         .single();
 
-      if (error) throw error;
-      
-      // Update tracking URL with actual QR code ID
-      if (trackingUrl && data) {
-        const actualTrackingUrl = generateTrackingUrl(data.id, input);
-        await updateQRCodeWithTracking(data.id, actualTrackingUrl);
+      if (insertError) throw insertError;
+
+      console.log('QR code saved with ID:', qrCodeData.id);
+
+      // If it's a URL, generate tracking URL and update the QR code
+      if (inputType === 'url' && qrCodeData) {
+        const trackingUrl = generateTrackingUrl(qrCodeData.id, input);
+        console.log('Generated tracking URL:', trackingUrl);
+        
+        // Update the QR code record with the tracking URL
+        await updateQRCodeWithTracking(qrCodeData.id, trackingUrl);
+        
+        // Regenerate QR code with tracking URL
+        const trackingQRDataUrl = await QRCode.toDataURL(trackingUrl, {
+          width: 512,
+          margin: 2,
+          color: {
+            dark: '#021526',
+            light: '#E2DAD6',
+          },
+          errorCorrectionLevel: 'H',
+        });
+
+        // Update the QR code with the new data URL that contains the tracking URL
+        const { error: updateError } = await supabase
+          .from('qr_codes')
+          .update({ qr_data_url: trackingQRDataUrl })
+          .eq('id', qrCodeData.id);
+
+        if (updateError) throw updateError;
+
+        // Update the displayed QR code
+        setQrDataUrl(trackingQRDataUrl);
+        console.log('QR code updated with tracking URL');
       }
       
       setSaved(true);
@@ -112,7 +134,10 @@ const QRGenerator: React.FC = () => {
     const value = e.target.value;
     setInput(value);
     
-    if (value.startsWith('http://') || value.startsWith('https://') || value.includes('.com') || value.includes('.org')) {
+    // Auto-detect URL
+    if (value.startsWith('http://') || value.startsWith('https://') || 
+        value.includes('.com') || value.includes('.org') || value.includes('.net') ||
+        value.includes('.io') || value.includes('.co') || value.includes('.app')) {
       setInputType('url');
     } else {
       setInputType('text');
@@ -161,7 +186,7 @@ const QRGenerator: React.FC = () => {
                       {inputType === 'url' ? 'URL Detected' : 'Text Content'}
                     </label>
                     <p className="text-sm text-muted-foreground">
-                      {inputType === 'url' ? 'Link will be tracked with analytics' : 'Plain text will be encoded'}
+                      {inputType === 'url' ? 'Link will be tracked via track.qrnexus.site' : 'Plain text will be encoded'}
                     </p>
                   </div>
                 </div>
@@ -230,7 +255,7 @@ const QRGenerator: React.FC = () => {
                   <BarChart3 className="w-5 h-5 text-info" strokeWidth={1.5} />
                   <div>
                     <h4 className="text-sm font-medium text-info">Analytics Enabled</h4>
-                    <p className="text-xs text-info/80">This URL will be tracked with real-time scan analytics</p>
+                    <p className="text-xs text-info/80">This URL will be tracked via track.qrnexus.site with real-time analytics</p>
                   </div>
                 </div>
               </div>
