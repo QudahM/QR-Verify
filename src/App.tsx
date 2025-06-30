@@ -8,8 +8,6 @@ import Hero from './components/Hero';
 import AuthModal from './components/auth/AuthModal';
 import Dashboard from './components/dashboard/Dashboard';
 import TrackingPage from './pages/TrackingPage';
-import PrivacyPolicy from './pages/PrivacyPolicy';
-import TermsOfService from './pages/TermsOfService';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 
@@ -121,9 +119,9 @@ function MainApp() {
         <div className="max-w-4xl mx-auto px-6 text-center">
           <p className="text-muted-foreground mb-4">© 2025 QR Nexus. All rights reserved.</p>
           <div className="flex justify-center space-x-6 text-sm text-muted-foreground">
-            <a href="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</a>
+            <button className="hover:text-foreground transition-colors">Privacy Policy</button>
             <span>•</span>
-            <a href="/terms" className="hover:text-foreground transition-colors">Terms of Service</a>
+            <button className="hover:text-foreground transition-colors">Terms of Service</button>
           </div>
         </div>
       </footer>
@@ -139,8 +137,6 @@ function AppContent() {
     <Router>
       <Routes>
         <Route path="/track/:qrCodeId" element={<TrackingPage />} />
-        <Route path="/privacy" element={<PrivacyPolicy />} />
-        <Route path="/terms" element={<TermsOfService />} />
         <Route path="/*" element={<MainApp />} />
       </Routes>
     </Router>
