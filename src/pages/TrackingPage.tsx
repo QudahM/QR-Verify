@@ -67,7 +67,7 @@ const TrackingPage: React.FC = () => {
 
         console.log('Target URL:', targetUrl);
 
-        // Step 4: Get scan metadata
+        // Step 4: Get scan metadata (no location tracking)
         const metadata = await getScanMetadata();
         console.log('Scan metadata:', metadata);
 
@@ -254,6 +254,19 @@ const TrackingPage: React.FC = () => {
               )}
             </div>
           )}
+
+          {/* Privacy Notice */}
+          <div className="mt-6 pt-4 border-t border-border">
+            <div className="bg-info/10 rounded-lg p-3 border border-info/20">
+              <div className="flex items-center space-x-2 mb-2">
+                <Shield className="w-4 h-4 text-info" strokeWidth={1.5} />
+                <span className="text-sm font-medium text-info">Privacy Protected</span>
+              </div>
+              <p className="text-xs text-info/80">
+                We only track that a scan occurred. No location data or personal information is collected.
+              </p>
+            </div>
+          </div>
 
           {/* Debug Info (only in development) */}
           {import.meta.env.DEV && (

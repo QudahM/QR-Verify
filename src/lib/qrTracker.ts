@@ -4,12 +4,6 @@ export interface ScanEvent {
   qr_code_id: string;
   user_agent?: string;
   ip_address?: string;
-  location?: {
-    city?: string;
-    country?: string;
-    latitude?: number;
-    longitude?: number;
-  };
   referrer?: string;
   session_id: string;
 }
@@ -102,7 +96,7 @@ export const updateQRCodeImage = async (qrCodeId: string, qrDataUrl: string): Pr
   }
 };
 
-// Log a scan event with comprehensive metadata
+// Log a scan event with basic metadata (no location tracking)
 export const logScanEvent = async (scanEvent: ScanEvent): Promise<boolean> => {
   try {
     console.log('Logging scan event:', scanEvent);
@@ -113,7 +107,7 @@ export const logScanEvent = async (scanEvent: ScanEvent): Promise<boolean> => {
         qr_code_id: scanEvent.qr_code_id,
         user_agent: scanEvent.user_agent,
         ip_address: scanEvent.ip_address,
-        location: scanEvent.location,
+        location: null, // Explicitly set location to null
         referrer: scanEvent.referrer,
         session_id: scanEvent.session_id,
         scanned_at: new Date().toISOString(),
@@ -184,7 +178,7 @@ export const generateSessionId = (): string => {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 };
 
-// Get user's IP address
+// Get user's IP address (optional)
 export const getUserIP = async (): Promise<string | null> => {
   try {
     const response = await fetch('https://api.ipify.org?format=json');
@@ -192,49 +186,6 @@ export const getUserIP = async (): Promise<string | null> => {
     return data.ip;
   } catch (error) {
     console.error('Error getting user IP:', error);
-    return null;
-  }
-};
-
-// Get user's location (with permission)
-export const getUserLocation = async (): Promise<{ city?: string; country?: string; latitude?: number; longitude?: number; } | null> => {
-  try {
-    // Try to get location from browser geolocation API
-    if ('geolocation' in navigator) {
-      return new Promise((resolve) => {
-        navigator.geolocation.getCurrentPosition(
-          async (position) => {
-            const { latitude, longitude } = position.coords;
-            
-            // Try to get city/country from coordinates using a reverse geocoding service
-            try {
-              const response = await fetch(
-                `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
-              );
-              const data = await response.json();
-              
-              resolve({
-                city: data.city || data.locality,
-                country: data.countryName,
-                latitude,
-                longitude,
-              });
-            } catch {
-              resolve({ latitude, longitude });
-            }
-          },
-          () => {
-            // Fallback to IP-based location
-            resolve(null);
-          },
-          { timeout: 5000 }
-        );
-      });
-    }
-    
-    return null;
-  } catch (error) {
-    console.error('Error getting user location:', error);
     return null;
   }
 };
@@ -305,19 +256,17 @@ export const validateQRCode = async (qrCodeId: string): Promise<any | null> => {
   }
 };
 
-// Get comprehensive scan metadata
+// Get basic scan metadata (no location tracking)
 export const getScanMetadata = async () => {
   const userAgent = navigator.userAgent;
   const referrer = document.referrer;
   const sessionId = generateSessionId();
   const ip = await getUserIP();
-  const location = await getUserLocation();
 
   return {
     user_agent: userAgent,
     referrer: referrer || null,
     session_id: sessionId,
     ip_address: ip,
-    location,
   };
 };
