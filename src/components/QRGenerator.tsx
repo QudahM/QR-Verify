@@ -16,6 +16,7 @@ const QRGenerator: React.FC = () => {
   const [saved, setSaved] = useState(false);
   const [showCustomizer, setShowCustomizer] = useState(false);
   const [generatedQRId, setGeneratedQRId] = useState<string | null>(null);
+  const [isQRSavedToDashboard, setIsQRSavedToDashboard] = useState(false);
 
   const { user } = useAuth();
 
@@ -38,6 +39,7 @@ const QRGenerator: React.FC = () => {
       setQrDataUrl(dataUrl);
       setSaved(false);
       setGeneratedQRId(null);
+      setIsQRSavedToDashboard(false); // Reset when generating new QR
     } catch (error) {
       console.error('Error generating QR code:', error);
     } finally {
@@ -71,6 +73,7 @@ const QRGenerator: React.FC = () => {
       
       console.log('QR code saved:', qrCodeData);
       setGeneratedQRId(qrCodeData.id);
+      setIsQRSavedToDashboard(true); // Mark as saved to dashboard
 
       // For URLs, generate tracking URL and update the record
       if (inputType === 'url') {
@@ -106,7 +109,7 @@ const QRGenerator: React.FC = () => {
       }
       
       setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
+      setTimeout(() => setSaved(false), 3000); // Only reset the temporary "saved" message
     } catch (error) {
       console.error('Error saving QR code:', error);
     } finally {
@@ -141,6 +144,12 @@ const QRGenerator: React.FC = () => {
     const value = e.target.value;
     setInput(value);
     
+    // Reset saved state when input changes
+    if (value !== input) {
+      setIsQRSavedToDashboard(false);
+      setGeneratedQRId(null);
+    }
+    
     // Auto-detect URL format
     if (value.startsWith('http://') || value.startsWith('https://') || 
         (value.includes('.') && (value.includes('.com') || value.includes('.org') || 
@@ -154,6 +163,7 @@ const QRGenerator: React.FC = () => {
   const handleCustomQRGenerated = (dataUrl: string) => {
     setQrDataUrl(dataUrl);
     setSaved(false);
+    setIsQRSavedToDashboard(false); // Reset when custom QR is generated
   };
 
   const getTrackingPreview = () => {
@@ -172,11 +182,11 @@ const QRGenerator: React.FC = () => {
       return { status: 'not-applicable', message: 'Text QR codes don\'t use tracking' };
     }
     
-    if (saved && generatedQRId) {
+    if (isQRSavedToDashboard && generatedQRId) {
       return { status: 'active', message: 'Tracking active - scans are being recorded' };
     }
     
-    if (qrDataUrl && !saved) {
+    if (qrDataUrl && !isQRSavedToDashboard) {
       return { status: 'inactive', message: 'Save to dashboard to enable tracking' };
     }
     
@@ -432,13 +442,18 @@ const QRGenerator: React.FC = () => {
                 {user && (
                   <button
                     onClick={saveQRCode}
-                    disabled={isSaving || saved}
+                    disabled={isSaving || isQRSavedToDashboard}
                     className="group w-full bg-info hover:bg-info/90 disabled:bg-info/50 text-white py-4 px-8 rounded-xl font-medium hover:shadow-glow disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-[1.02] disabled:hover:scale-100 flex items-center justify-center space-x-3"
                   >
                     {isSaving ? (
                       <>
                         <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                         <span>Saving...</span>
+                      </>
+                    ) : isQRSavedToDashboard ? (
+                      <>
+                        <Check className="w-5 h-5" strokeWidth={1.5} />
+                        <span>Saved to Dashboard!</span>
                       </>
                     ) : saved ? (
                       <>
@@ -456,7 +471,7 @@ const QRGenerator: React.FC = () => {
               </div>
 
               {/* QR Code Info */}
-              {saved && generatedQRId && inputType === 'url' && (
+              {isQRSavedToDashboard && generatedQRId && inputType === 'url' && (
                 <div className="bg-success/10 rounded-xl p-4 border border-success/20">
                   <div className="text-center">
                     <h4 className="text-sm font-medium text-success mb-2">Tracking Active</h4>
