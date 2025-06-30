@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Download, Link, Type, Zap, Copy, Check, QrCode, Save, Palette, BarChart3, ExternalLink } from 'lucide-react';
+import { Download, Link, Type, Zap, Copy, Check, QrCode, Save, Palette, BarChart3, ExternalLink, Shield, Eye } from 'lucide-react';
 import QRCode from 'qrcode';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -163,6 +163,26 @@ const QRGenerator: React.FC = () => {
     return null;
   };
 
+  const getTrackingStatus = () => {
+    if (!user) {
+      return { status: 'unavailable', message: 'Sign in to enable tracking' };
+    }
+    
+    if (inputType !== 'url') {
+      return { status: 'not-applicable', message: 'Text QR codes don\'t use tracking' };
+    }
+    
+    if (saved && generatedQRId) {
+      return { status: 'active', message: 'Tracking active - scans are being recorded' };
+    }
+    
+    if (qrDataUrl && !saved) {
+      return { status: 'inactive', message: 'Save to dashboard to enable tracking' };
+    }
+    
+    return { status: 'pending', message: 'Generate QR code first' };
+  };
+
   return (
     <div className="space-y-12">
       {/* Header */}
@@ -306,6 +326,97 @@ const QRGenerator: React.FC = () => {
                       className="w-80 h-80 mx-auto rounded-xl"
                     />
                   </div>
+                </div>
+              </div>
+
+              {/* Tracking Status Indicator */}
+              <div className="bg-surface/50 rounded-xl p-4 border border-border">
+                <div className="flex items-center space-x-3">
+                  {(() => {
+                    const trackingStatus = getTrackingStatus();
+                    
+                    switch (trackingStatus.status) {
+                      case 'active':
+                        return (
+                          <>
+                            <div className="w-8 h-8 bg-success/10 rounded-lg flex items-center justify-center">
+                              <Eye className="w-4 h-4 text-success" strokeWidth={1.5} />
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center space-x-2">
+                                <span className="text-sm font-medium text-success">Tracking: ON</span>
+                                <div className="w-2 h-2 bg-success rounded-full animate-pulse"></div>
+                              </div>
+                              <p className="text-xs text-success/80">{trackingStatus.message}</p>
+                            </div>
+                          </>
+                        );
+                      
+                      case 'inactive':
+                        return (
+                          <>
+                            <div className="w-8 h-8 bg-warning/10 rounded-lg flex items-center justify-center">
+                              <Shield className="w-4 h-4 text-warning" strokeWidth={1.5} />
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center space-x-2">
+                                <span className="text-sm font-medium text-warning">Tracking: OFF</span>
+                                <div className="w-2 h-2 bg-warning rounded-full"></div>
+                              </div>
+                              <p className="text-xs text-warning/80">{trackingStatus.message}</p>
+                            </div>
+                          </>
+                        );
+                      
+                      case 'unavailable':
+                        return (
+                          <>
+                            <div className="w-8 h-8 bg-muted/10 rounded-lg flex items-center justify-center">
+                              <Shield className="w-4 h-4 text-muted-foreground" strokeWidth={1.5} />
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center space-x-2">
+                                <span className="text-sm font-medium text-muted-foreground">Tracking: UNAVAILABLE</span>
+                                <div className="w-2 h-2 bg-muted-foreground rounded-full"></div>
+                              </div>
+                              <p className="text-xs text-muted-foreground/80">{trackingStatus.message}</p>
+                            </div>
+                          </>
+                        );
+                      
+                      case 'not-applicable':
+                        return (
+                          <>
+                            <div className="w-8 h-8 bg-info/10 rounded-lg flex items-center justify-center">
+                              <Type className="w-4 h-4 text-info" strokeWidth={1.5} />
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center space-x-2">
+                                <span className="text-sm font-medium text-info">Tracking: N/A</span>
+                                <div className="w-2 h-2 bg-info rounded-full"></div>
+                              </div>
+                              <p className="text-xs text-info/80">{trackingStatus.message}</p>
+                            </div>
+                          </>
+                        );
+                      
+                      default:
+                        return (
+                          <>
+                            <div className="w-8 h-8 bg-muted/10 rounded-lg flex items-center justify-center">
+                              <Shield className="w-4 h-4 text-muted-foreground" strokeWidth={1.5} />
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center space-x-2">
+                                <span className="text-sm font-medium text-muted-foreground">Tracking: PENDING</span>
+                                <div className="w-2 h-2 bg-muted-foreground rounded-full"></div>
+                              </div>
+                              <p className="text-xs text-muted-foreground/80">{trackingStatus.message}</p>
+                            </div>
+                          </>
+                        );
+                    }
+                  })()}
                 </div>
               </div>
               
