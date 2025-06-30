@@ -29,7 +29,6 @@ const ScanChart: React.FC<ScanChartProps> = ({ data, title, height = 200 }) => {
   const totalScans = data.reduce((sum, d) => sum + d.scan_count, 0);
   const avgScans = totalScans / data.length;
 
-  // Calculate trend
   const recentData = data.slice(-7);
   const olderData = data.slice(-14, -7);
   const recentAvg = recentData.reduce((sum, d) => sum + d.scan_count, 0) / recentData.length;
@@ -55,8 +54,8 @@ const ScanChart: React.FC<ScanChartProps> = ({ data, title, height = 200 }) => {
               {trend === 'down' && <TrendingDown className="w-3 h-3 text-destructive" strokeWidth={1.5} />}
               {trend === 'stable' && <Minus className="w-3 h-3 text-muted-foreground" strokeWidth={1.5} />}
               <span className={`${
-                trend === 'up' ? 'text-success' : 
-                trend === 'down' ? 'text-destructive' : 
+                trend === 'up' ? 'text-success' :
+                trend === 'down' ? 'text-destructive' :
                 'text-muted-foreground'
               }`}>
                 {trendPercentage.toFixed(1)}%
@@ -68,7 +67,6 @@ const ScanChart: React.FC<ScanChartProps> = ({ data, title, height = 200 }) => {
 
       <div className="relative" style={{ height }}>
         <svg width="100%" height="100%" className="overflow-visible">
-          {/* Grid lines */}
           {[0, 0.25, 0.5, 0.75, 1].map((ratio, index) => (
             <line
               key={index}
@@ -82,7 +80,6 @@ const ScanChart: React.FC<ScanChartProps> = ({ data, title, height = 200 }) => {
             />
           ))}
 
-          {/* Bars */}
           {data.map((item, index) => {
             const barHeight = maxScans > 0 ? (item.scan_count / maxScans) * (height - 20) : 0;
             const barWidth = `${(1 / data.length) * 100}%`;
@@ -105,66 +102,26 @@ const ScanChart: React.FC<ScanChartProps> = ({ data, title, height = 200 }) => {
                   onMouseEnter={() => setHoveredIndex(index)}
                   onMouseLeave={() => setHoveredIndex(null)}
                 />
-                
-                {/* Hover tooltip */}
+
                 {hoveredIndex === index && (
-                  <g>
-                    {/* Calculate tooltip position to keep it within bounds */}
-                    {(() => {
-                      const tooltipWidth = 80;
-                      const chartWidth = 100; // percentage
-                      const barPosition = (index / data.length) * chartWidth;
-                      
-                      // If tooltip would go beyond right edge, position it to the left of the bar
-                      const shouldPositionLeft = barPosition > chartWidth - 25;
-                      const tooltipX = shouldPositionLeft 
-                        ? `calc(${x} - ${tooltipWidth}px)` 
-                        : `calc(${x} + 10px)`;
-                      
-                      return (
-                        <>
-                          <rect
-                            x={tooltipX}
-                            y={y - 35}
-                            width={tooltipWidth}
-                            height="30"
-                            className="fill-foreground"
-                            rx="4"
-                            opacity="0.95"
-                          />
-                          <text
-                            x={shouldPositionLeft 
-                              ? `calc(${x} - ${tooltipWidth/2}px)` 
-                              : `calc(${x} + ${tooltipWidth/2}px)`
-                            }
-                            y={y - 20}
-                            textAnchor="middle"
-                            className="fill-background text-xs font-medium"
-                          >
-                            {item.scan_count} scans
-                          </text>
-                          <text
-                            x={shouldPositionLeft 
-                              ? `calc(${x} - ${tooltipWidth/2}px)` 
-                              : `calc(${x} + ${tooltipWidth/2}px)`
-                            }
-                            y={y - 8}
-                            textAnchor="middle"
-                            className="fill-background text-xs opacity-70"
-                          >
-                            {formatDate(item.scan_date)}
-                          </text>
-                        </>
-                      );
-                    })()}
-                  </g>
+                  <foreignObject
+                    x={`${(index / data.length) * 100}%`}
+                    y={y - 55}
+                    width="100"
+                    height="50"
+                  >
+                    <div xmlns="http://www.w3.org/1999/xhtml"
+                      className="bg-white text-black rounded-md text-xs px-2 py-1 shadow-md w-max max-w-[100px]">
+                      <div className="font-semibold">{item.scan_count} scans</div>
+                      <div className="opacity-70">{formatDate(item.scan_date)}</div>
+                    </div>
+                  </foreignObject>
                 )}
               </g>
             );
           })}
         </svg>
 
-        {/* X-axis labels */}
         <div className="absolute bottom-0 left-0 right-0 flex justify-between text-xs text-muted-foreground mt-2">
           {data.filter((_, index) => index % Math.ceil(data.length / 5) === 0).map((item, index) => (
             <span key={index}>{formatDate(item.scan_date)}</span>
