@@ -143,20 +143,6 @@ const QRAnalytics: React.FC<QRAnalyticsProps> = ({ qrCodeId, qrCodeContent, qrCo
       {qrCodeData?.is_tracked && qrCodeData?.tracking_url && (
         <div className="bg-surface/50 rounded-xl p-6 border border-border">
           <div className="space-y-6">
-
-            {/* Charts */}
-              <div className="grid lg:grid-cols-2 gap-6">
-                <ScanChart
-                  data={weeklyData}
-                  title="Last 7 Days"
-                  height={200}
-                />
-                <ScanChart
-                  data={dailyData}
-                  title="Last 30 Days"
-                  height={200}
-                />
-              </div>
             
             {/* Tracking Status Header */}
             <div className="flex items-center space-x-3">
@@ -170,6 +156,21 @@ const QRAnalytics: React.FC<QRAnalyticsProps> = ({ qrCodeId, qrCodeContent, qrCo
                 </div>
                 <p className="text-xs text-success/80">Real-time analytics and scan tracking enabled</p>
               </div>
+            </div>
+
+            
+            {/* Charts */}
+            <div className="grid lg:grid-cols-2 gap-6">
+              <ScanChart
+                data={weeklyData}
+                title="Last 7 Days"
+                height={200}
+              />
+              <ScanChart
+                data={dailyData}
+                title="Last 30 Days"
+                height={200}
+              />
             </div>
 
             {/* Analytics Features Grid */}
