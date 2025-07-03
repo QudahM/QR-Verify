@@ -2,14 +2,14 @@
 
 A professional QR code generation and analytics platform built with React, TypeScript, and Supabase. Create beautiful, trackable QR codes with real-time analytics and advanced customization options.
 
-![QR Nexus](https://qrnexus.site/og-image.png)
+![QR Nexus](./public/qrnexus_homepage.png)
 
 ## 🌟 Features
 
 ### Core Functionality
 - **Instant QR Generation** - Create high-quality QR codes in milliseconds
 - **Advanced Customization** - Professional design templates, colors, gradients, and logo embedding
-- **Security Verification** - Built-in URL safety checking with Google Safe Browsing API
+- **Security Verification** - Decodes QR codes and checks URL safety with AI and Google Safe Browsing
 - **Real-time Analytics** - Track scans, user behavior, and performance metrics
 - **Multi-format Export** - Download as PNG, SVG, or PDF with various resolutions
 
