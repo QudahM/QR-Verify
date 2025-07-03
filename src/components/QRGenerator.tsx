@@ -171,7 +171,8 @@ const QRGenerator: React.FC = () => {
     
     // Auto-detect URL format
     if (value.startsWith('http://') || value.startsWith('https://') || 
-        (value.includes('.') && (value.includes('.com') || value.includes('.org') || 
+        (value.includes('.') && (value.includes('.com') || value.includes('.org') ||
+         value.includes('.ca') || value.includes('.new') || value.includes('.ai') ||
          value.includes('.net') || value.includes('.edu') || value.includes('.gov')))) {
       setInputType('url');
     } else {
